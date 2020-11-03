@@ -6,9 +6,9 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-outer = False;
-stepCount = 3;
-framesPerMove = 4;
+(* outer = False; *)
+stepCount = 30;
+framesPerMove = 24;
 
 outputFolder = FileNameJoin[{imageFolder, "rolling_animation_frames_" <> If[outer, "outer", "inner"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
@@ -49,7 +49,7 @@ getTriangularFaces[vertices_] := Module[
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graphElements, graph, outputFileName, cropCommand, },
     thickness = 0.07;
-    range = 2.0;
+    range = 2.5;
     lighting = {{"Point", White, {10, -10, 10}}};
     graphElements = {};
 
@@ -95,7 +95,7 @@ exportAnimation[] := Module[{},
     gifFileName = "random_rolling_" <> If[outer, "outer", "inner"];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
-    gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[150/frameCount]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
+    gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
 
     Print[gifCommand];
     Run[gifCommand];
@@ -153,7 +153,7 @@ edgeIndices1 = faceIndices1[[{2, 3}]];
 
 (* start loop *)
 For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
-    Print[{faceIndex, faceIndices1, edgeIndices1}];
+    Print[{stepIndex, faceIndex, faceIndices1, edgeIndices1}];
     newFaceIndex = Select[Range[Length[faceIndicesIcosa]], ContainsAll[faceIndicesIcosa[[#]], edgeIndices1] && # != faceIndex &][[1]];
 
     edgeCenter = Mean[verticesIcosa[[edgeIndices1]]];
