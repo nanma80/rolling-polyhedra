@@ -7,8 +7,8 @@ exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
 outer = False;
-stepCount = 3; (* 30 *)
-framesPerMove = 4; (* 24 *)
+stepCount = 30; (* 30 *)
+framesPerMove = 24; (* 24 *)
 
 outputFolder = FileNameJoin[{imageFolder, "tracing_rolling_animation_frames_" <> If[outer, "outer", "inner"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
