@@ -1,0 +1,63 @@
+https://math.stackexchange.com/questions/1641110/proof-that-the-rubik-s-cube-group-is-2-generated/1641564
+
+LoadPackage("grape");
+
+flipIcosa := (19, 20)(18, 13)(11, 16)(9, 14)(10, 15)(2, 6)(8, 4)(1, 5)(17, 12)(7, 3);
+rotateIcosa := (19, 16, 13)(18, 15, 12)(11, 17, 14)(9, 6, 3)(10, 7, 4)(8, 5, 2);
+
+flipTetra := (101, 102)(103, 104);
+rotateTetra := (102, 103, 104);
+
+flipOcta := (201, 202)(203, 206)(205, 204)(207, 208);
+rotateOcta := (202, 205, 203)(204, 206, 207);
+
+Size(Group(flipTetra, rotateTetra)); # 12
+Size(Group(flipOcta, rotateOcta)); # 24
+Size(Group(flipIcosa, rotateIcosa)); # 60
+
+coreFlip := flipIcosa * flipTetra;
+setup := rotateIcosa * rotateTetra;
+generators := [coreFlip,
+        setup * coreFlip *Inverse(setup),
+        Inverse(setup) * coreFlip * setup];
+
+rollingGroup := Group(generators);
+IdGroup(rollingGroup); # [240, 190]
+# 240 = 20 * 4 * 3. setup not in group
+StructureDescription(rollingGroup);
+# C2 x C2 x A5
+
+cayley := Graph(rollingGroup,Elements(rollingGroup),OnRight,function(x,y) return y/x in generators; end);
+
+
+coreFlip := flipIcosa * flipOcta;
+setup := rotateIcosa * rotateOcta;
+generators := [coreFlip,
+        setup * coreFlip *Inverse(setup),
+        Inverse(setup) * coreFlip * setup];
+
+rollingGroup := Group(generators);
+IdGroup(rollingGroup); # [ 1440, 5848 ]
+# 1440. Why? Why not 480 = 20 * 8 * 3 Missing a factor of 3. setup itself is in the group
+StructureDescription(rollingGroup);
+# S4 x A5
+
+
+g1 := Group(
+    coreFlip,
+    setup * coreFlip * Inverse(setup),
+    Inverse(setup) * coreFlip * setup
+);
+# no normal subgroup with size 480
+
+coreFlip := flipTetra * flipOcta;
+setup := rotateTetra * rotateOcta;
+generators := [coreFlip,
+        setup * coreFlip *Inverse(setup),
+        Inverse(setup) * coreFlip * setup];
+
+rollingGroup := Group(generators);
+IdGroup(rollingGroup); # [ 96, 226 ]
+# 96 = 8 * 4 * 3. setup not in group
+StructureDescription(rollingGroup);
+# C2 x C2 x S4
