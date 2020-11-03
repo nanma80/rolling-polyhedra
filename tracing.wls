@@ -6,9 +6,12 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-outer = False;
+(* outer = False; *)
 stepCount = 30; (* 30 *)
 framesPerMove = 24; (* 24 *)
+
+vertexColors = {Red, Yellow, Blue, Green};
+edgeColors = {Cyan, Magenta, Brown, Orange, Pink, Purple};
 
 outputFolder = FileNameJoin[{imageFolder, "tracing_rolling_animation_frames_" <> If[outer, "outer", "inner"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
@@ -49,17 +52,20 @@ graphElements = {};
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, },
-    thickness = 0.035;
+    thickness = 0.035 * (1 + 0.0001 * serialNumber);
     range = 2.5;
     lighting = {{"Point", White, {10, -10, 10}}};
 
-    graphElements = Join[graphElements, Map[{Sphere[#, 2 * thickness], thickness}&, verticesIcosa]];
+    (* draw icosa only once *)
+    If[Length[graphElements] == 0, 
+        graphElements = Join[graphElements, Map[{Sphere[#, 2 * thickness], thickness}&, verticesIcosa]];
 
-    graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]], thickness]}&, edgeIndicesIcosa]];
+        graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]], thickness]}&, edgeIndicesIcosa]];
+    ];
 
-    graphElements = Join[graphElements, Map[{FaceForm[Yellow], Sphere[#, 2 * thickness], thickness}&, rotatedVerticesTetra]];
+    graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[rotatedVerticesTetra[[#]], 3 * thickness], thickness}&, Range[Length[rotatedVerticesTetra]]]];
 
-    graphElements = Join[graphElements, Map[{FaceForm[Magenta], Cylinder[rotatedVerticesTetra[[#]], thickness * 1.2]}&, edgeIndicesTetra]];
+    graphElements = Join[graphElements, Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]], thickness * 1.2]}&, Range[Length[edgeIndicesTetra]]]];
 
 
     graph = Graphics3D[
