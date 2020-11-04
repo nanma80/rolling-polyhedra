@@ -7,8 +7,8 @@ exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
 (* outer = False; *)
-stepCount = If[outer, 50, 30]; (* 30 *)
-framesPerMove = 24; (* 24 *)
+stepCount = 200; (* 30 *)
+framesPerMove = If[outer, 24, 18]; (* 24 *)
 
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
@@ -167,10 +167,14 @@ serialNumber = 1;
 faceIndex = 1;
 faceIndices1 = faceIndicesIcosa[[faceIndex]];
 edgeIndices1 = faceIndices1[[{2, 3}]];
+seenEdges = {};
 
 (* start loop *)
 For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
     Print[{stepIndex, faceIndex, faceIndices1, edgeIndices1}];
+    seenEdges = Union[seenEdges, { Sort[edgeIndices1] }];
+    Print[{Length[seenEdges], Length[edgeIndicesIcosa]}];
+
     newFaceIndex = Select[Range[Length[faceIndicesIcosa]], ContainsAll[faceIndicesIcosa[[#]], edgeIndices1] && # != faceIndex &][[1]];
 
     edgeCenter = Mean[verticesIcosa[[edgeIndices1]]];
@@ -199,7 +203,7 @@ For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
     availableEdges = Select[allEdges, # != edgeIndices1 && # != edgeIndices1[[{2, 1}]] &];
     edgeIndices1 = availableEdges[[Random[Integer, {1, 2}]]];
 
-
+    If[Length[seenEdges] == Length[edgeIndicesIcosa], Break[]];
 ];
 
 exportAnimation[];
