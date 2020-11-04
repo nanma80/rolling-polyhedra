@@ -6,12 +6,12 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-(* outer = False; *)
+outer = False;
 stepCount = 30;
 framesPerMove = 24;
 
 vertexColors = {Red, Yellow, Blue, Green};
-edgeColors = {Cyan, Magenta, Pink, Purple, Brown, Orange};
+edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
 outputFolder = FileNameJoin[{imageFolder, "rolling_animation_frames_" <> If[outer, "outer", "inner"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
@@ -52,7 +52,8 @@ getTriangularFaces[vertices_] := Module[
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graphElements, graph, outputFileName, cropCommand, },
     thickness = 0.035;
-    range = 2.5;
+    range = If[outer, 2.5, 1.5];
+
     lighting = {{"Point", White, {10, -10, 10}}};
     graphElements = {};
 
@@ -100,11 +101,20 @@ exportAnimation[] := Module[{},
     gifFolder = imageFolder;
     gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
 
+    mp4Command = "ffmpeg -i " <> gifFolder <> "\\" <> gifFileName <> ".gif" 
+        <> " -movflags faststart -pix_fmt yuv420p "
+        <> gifFolder <> "\\" <> gifFileName <> ".mp4";
+
     Print[gifCommand];
     Run[gifCommand];
     Print["Saved the animation to " <> gifFolder <> "\\" <> gifFileName <> ".gif"];
-];
 
+    mp4FileName = gifFolder <> "\\" <> gifFileName <> ".mp4";
+    If[FileExistsQ[mp4FileName], DeleteFile[mp4FileName]];
+    Print[mp4Command];
+    Run[mp4Command];
+    Print["Saved the video to " <> gifFolder <> "\\" <> gifFileName <> ".mp4"]
+];
 
 
 (* initialization *)
@@ -185,7 +195,7 @@ For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
     availableEdges = Select[allEdges, # != edgeIndices1 && # != edgeIndices1[[{2, 1}]] &];
     edgeIndices1 = availableEdges[[Random[Integer, {1, 2}]]];
 
-
+    If[faceIndex == 1 && stepIndex > 20, Break[]];
 ];
 
 exportAnimation[];
