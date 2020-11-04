@@ -11,7 +11,7 @@ stepCount = 30; (* 30 *)
 framesPerMove = 24; (* 24 *)
 
 vertexColors = {Red, Yellow, Blue, Green};
-edgeColors = {Cyan, Magenta, Brown, Orange, Pink, Purple};
+edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
 outputFolder = FileNameJoin[{imageFolder, "tracing_rolling_animation_frames_" <> If[outer, "outer", "inner"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
@@ -53,7 +53,7 @@ graphElements = {};
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, },
     thickness = 0.035 * (1 + 0.0001 * serialNumber);
-    range = 2.5;
+    range = If[outer, 2.5, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
 
     (* draw icosa only once *)
@@ -97,15 +97,26 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 ];
 
 
+
 exportAnimation[] := Module[{},
     gifFileName = "tracing_random_rolling_" <> If[outer, "outer", "inner"];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
     gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
 
+    mp4Command = "ffmpeg -i " <> gifFolder <> "\\" <> gifFileName <> ".gif" 
+        <> " -movflags faststart -pix_fmt yuv420p "
+        <> gifFolder <> "\\" <> gifFileName <> ".mp4";
+
     Print[gifCommand];
     Run[gifCommand];
     Print["Saved the animation to " <> gifFolder <> "\\" <> gifFileName <> ".gif"];
+
+    mp4FileName = gifFolder <> "\\" <> gifFileName <> ".mp4";
+    If[FileExistsQ[mp4FileName], DeleteFile[mp4FileName]];
+    Print[mp4Command];
+    Run[mp4Command];
+    Print["Saved the video to " <> gifFolder <> "\\" <> gifFileName <> ".mp4"]
 ];
 
 
