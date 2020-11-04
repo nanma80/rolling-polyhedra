@@ -194,8 +194,6 @@ For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
     allEdges = Subsets[faceIndices1, {2}];
     availableEdges = Select[allEdges, # != edgeIndices1 && # != edgeIndices1[[{2, 1}]] &];
     edgeIndices1 = availableEdges[[Random[Integer, {1, 2}]]];
-
-    If[faceIndex == 1 && stepIndex > 20, Break[]];
 ];
 
 exportAnimation[];

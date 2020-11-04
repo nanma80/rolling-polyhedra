@@ -7,7 +7,7 @@ exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
 (* outer = False; *)
-stepCount = 30; (* 30 *)
+stepCount = If[outer, 50, 30]; (* 30 *)
 framesPerMove = 24; (* 24 *)
 
 vertexColors = {Red, Yellow, Blue, Green};
