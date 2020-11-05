@@ -8,7 +8,7 @@ epsilon = 0.000000001;
 outer = True;
 outer = False;
 stepCount = 50; (* 30 *)
-framesPerMove = If[outer, 24, 18]; (* 24 *)
+framesPerMove = If[outer, 24, 12]; (* 24 *)
 
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};

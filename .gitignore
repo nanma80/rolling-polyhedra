@@ -11,6 +11,7 @@ output/test/**
 output/*layer*/**
 output/*vertex_explode/**
 output/*frames*/**
+output/largefiles/**
 
 # temp ignore face_ while tuning
 output/**/face_polytope*
