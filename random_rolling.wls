@@ -6,7 +6,7 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-(* outer = False; *)
+outer = False;
 stepCount = 20;
 framesPerMove = If[outer, 24, 12];
 
