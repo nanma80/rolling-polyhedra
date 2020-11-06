@@ -68,8 +68,8 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
     graph = Graphics3D[
         graphElements,
-        ViewPoint -> {3, -3, 0} * 10,
-        ViewVertical -> {1, 0, phi},
+        ViewPoint -> {3, -2.5, 2} * 10,
+        ViewVertical -> {0, 1, phi},
         PlotRange -> {{-range, range}, {-range, range}, {-range, range}},
         Lighting -> lighting
     ];
