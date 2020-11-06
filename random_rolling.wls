@@ -6,9 +6,9 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-outer = False;
+(* outer = False; *)
 stepCount = 20;
-framesPerMove = 24;
+framesPerMove = If[outer, 24, 12];
 
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
