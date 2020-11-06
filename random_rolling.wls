@@ -51,7 +51,7 @@ getTriangularFaces[vertices_] := Module[
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graphElements, graph, outputFileName, cropCommand, },
-    thickness = 0.035 * If[outer, 1, 0.6];
+    thickness = 0.035;
     range = If[outer, 2.5, 1.5];
 
     lighting = {{"Point", White, {10, -10, 10}}};

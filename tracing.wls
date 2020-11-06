@@ -6,12 +6,12 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-(* outer = False; *)
+outer = False;
 stepCount = 40;
 framesPerMove = If[outer, 24, 12]; (* 24 *)
 
 traceEdges = True;
-traceEdges = False;
+(* traceEdges = False; *)
 
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
@@ -55,7 +55,7 @@ graphElements = {};
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, },
-    thickness = 0.035 * (1 + 0.0001 * serialNumber) * If[outer, 1, 0.6];
+    thickness = 0.035 * (1 + 0.0001 * serialNumber);
     range = If[outer, 2.5, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
 
