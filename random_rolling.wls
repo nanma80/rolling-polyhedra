@@ -51,19 +51,19 @@ getTriangularFaces[vertices_] := Module[
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graphElements, graph, outputFileName, cropCommand, },
-    thickness = 0.035;
+    thickness = 0.035 * If[outer, 1, 0.6];
     range = If[outer, 2.5, 1.5];
 
     lighting = {{"Point", White, {10, -10, 10}}};
     graphElements = {};
 
-    graphElements = Join[graphElements, Map[{Sphere[#, 2 * thickness], thickness}&, verticesIcosa]];
+    graphElements = Join[graphElements, Map[{Sphere[#, 1.5 * thickness], thickness}&, verticesIcosa]];
 
-    graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]], thickness]}&, edgeIndicesIcosa]];
+    graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]], thickness * 0.75]}&, edgeIndicesIcosa]];
 
     graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[rotatedVerticesTetra[[#]], 3 * thickness], thickness}&, Range[Length[rotatedVerticesTetra]]]];
 
-    graphElements = Join[graphElements, Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]], thickness * 1.2]}&, Range[Length[edgeIndicesTetra]]]];
+    graphElements = Join[graphElements, Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]], thickness * 0.76]}&, Range[Length[edgeIndicesTetra]]]];
 
 
     graph = Graphics3D[

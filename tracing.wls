@@ -6,14 +6,17 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 outer = True;
-outer = False;
-stepCount = 50; (* 30 *)
+(* outer = False; *)
+stepCount = 40;
 framesPerMove = If[outer, 24, 12]; (* 24 *)
+
+traceEdges = True;
+traceEdges = False;
 
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
-outputFolder = FileNameJoin[{imageFolder, "tracing_rolling_animation_frames_" <> If[outer, "outer", "inner"]}];
+outputFolder = FileNameJoin[{imageFolder, "tracing_rolling_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
 
 Needs["POVRayRender`"];
@@ -52,24 +55,30 @@ graphElements = {};
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, },
-    thickness = 0.035 * (1 + 0.0001 * serialNumber);
+    thickness = 0.035 * (1 + 0.0001 * serialNumber) * If[outer, 1, 0.6];
     range = If[outer, 2.5, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
 
     (* draw icosa only once *)
     If[Length[graphElements] == 0, 
-        graphElements = Join[graphElements, Map[{Sphere[#, 2 * thickness], thickness}&, verticesIcosa]];
+        graphElements = Join[graphElements, Map[{Sphere[#, 1.5 * thickness], thickness}&, verticesIcosa]];
 
-        graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]], thickness]}&, edgeIndicesIcosa]];
+        graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]], thickness * 0.75]}&, edgeIndicesIcosa]];
     ];
 
     graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[rotatedVerticesTetra[[#]], 3 * thickness], thickness}&, Range[Length[rotatedVerticesTetra]]]];
 
-    graphElements = Join[graphElements, Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]], thickness * 1.2]}&, Range[Length[edgeIndicesTetra]]]];
+    edgesToShow = Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]], thickness * 0.76]}&, Range[Length[edgeIndicesTetra]]];
 
+    If[traceEdges,
+        graphElements = Join[graphElements, edgesToShow];
+    ];
 
     graph = Graphics3D[
-        graphElements,
+        If[traceEdges,
+            graphElements,
+            Join[graphElements, edgesToShow]
+        ],
         ViewPoint -> {3, -3, 0} * 10,
         ViewVertical -> {1, 0, phi},
         PlotRange -> {{-range, range}, {-range, range}, {-range, range}},
@@ -99,7 +108,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
 
 exportAnimation[] := Module[{},
-    gifFileName = "tracing_random_rolling_" <> If[outer, "outer", "inner"];
+    gifFileName = "tracing_random_rolling_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
     gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
@@ -161,21 +170,59 @@ theta = ArcCos[(v1.v2)/Norm[v1]/Norm[v2]]//FullSimplify;
 sign = Sign[Det[{edgeVector, edgeCenter, face1Total}]] * If[outer, 1, -1];
 rotatedVerticesTetra = rotated[verticesTetra, edgeCenter, edgeVector, sign * theta/2];
 
+pathFaces = {
+    {1, 3, 7},
+    {1, 4, 7},
+    {4, 7, 12},
+    {4, 6, 12},
+    {6, 8, 12},
+    {2, 6, 8},
+    {2, 6, 10},
+    {2, 9, 10},
+    {1, 9, 10},
+    {1, 3, 9},
+    {3, 5, 9},
+    {3, 5, 11},
+    {5, 8, 11},
+    {8, 11, 12},
+    {7, 11, 12},
+    {3, 7, 11},
+    {1, 3, 7},
+    {1, 3, 9},
+    {3, 5, 9},
+    {2, 5, 9},
+    {2, 5, 8},
+    {2, 6, 8},
+    {2, 6, 10},
+    {4, 6, 10},
+    {1, 4, 10},
+    {1, 4, 7},
+    {4, 7, 12},
+    {7, 11, 12},
+    {8, 11, 12},
+    {6, 8, 12},
+    {4, 6, 12},
+    {4, 6, 10},
+    {1, 4, 10},
+    {1, 9, 10},
+    {2, 9, 10},
+    {2, 5, 9},
+    {2, 5, 8},
+    {5, 8, 11},
+    {3, 5, 11},
+    {3, 7, 11},
+    {1, 3, 7}
+};
 
-(* random rolling *)
+pathEdges = Table[Intersection[pathFaces[[i]], pathFaces[[i + 1]]], {i, 40}];
+
 serialNumber = 1;
-faceIndex = 1;
-faceIndices1 = faceIndicesIcosa[[faceIndex]];
-edgeIndices1 = faceIndices1[[{2, 3}]];
-seenEdges = {};
 
-(* start loop *)
 For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
-    Print[{stepIndex, faceIndex, faceIndices1, edgeIndices1}];
-    seenEdges = Union[seenEdges, { Sort[edgeIndices1] }];
-    Print[{Length[seenEdges], Length[edgeIndicesIcosa]}];
+    faceIndices1 = pathFaces[[stepIndex]];
+    edgeIndices1 = pathEdges[[stepIndex]];
 
-    newFaceIndex = Select[Range[Length[faceIndicesIcosa]], ContainsAll[faceIndicesIcosa[[#]], edgeIndices1] && # != faceIndex &][[1]];
+    Print[{stepIndex, faceIndices1, edgeIndices1}];
 
     edgeCenter = Mean[verticesIcosa[[edgeIndices1]]];
     edgeVector = verticesIcosa[[edgeIndices1]][[1]] - verticesIcosa[[edgeIndices1]][[2]];
@@ -191,19 +238,10 @@ For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
         serialNumber = serialNumber + 1;
     ];
 
-    (* complete a rotation step *)
     verticesTetra = rotated[verticesTetra, edgeCenter, edgeVector, sign * theta]//FullSimplify;
 
     drawImage[verticesIcosa, edgeIndicesIcosa, verticesTetra, edgeIndicesTetra, serialNumber];
     serialNumber = serialNumber + 1;
-
-    faceIndex = newFaceIndex;
-    faceIndices1 = faceIndicesIcosa[[faceIndex]];
-    allEdges = Subsets[faceIndices1, {2}];
-    availableEdges = Select[allEdges, # != edgeIndices1 && # != edgeIndices1[[{2, 1}]] &];
-    edgeIndices1 = availableEdges[[Random[Integer, {1, 2}]]];
-
-    If[Length[seenEdges] == Length[edgeIndicesIcosa], Break[]];
 ];
 
 exportAnimation[];
