@@ -5,7 +5,7 @@ imageSize = 150 * {4, 3};
 exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
-stepCount = 5;
+stepCount = 40;
 framesPerMove = If[outer, 24, 12]; (* 24 *)
 
 outer = True;
@@ -31,7 +31,12 @@ If[Length[$ScriptCommandLine] <= 1,
     ];
 ];
 
-Print[{outer, traceEdges, traceNodes}];
+If[traceNodes == False && traceEdges == False && stepCount == 40,
+    stepCount = 16
+];
+
+Print[{outer, traceEdges, traceNodes, stepCount}];
+
 
 stepCountNoChange = 4;
 vertexColors = {Red, Yellow, Blue, Green};
