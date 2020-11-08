@@ -6,7 +6,7 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 stepCount = 40;
-framesPerMove = If[outer, 24, 12]; (* 24 *)
+framesPerMove = If[outer, 24, 12];
 
 outer = True;
 (* outer = False; *)
@@ -31,14 +31,10 @@ If[Length[$ScriptCommandLine] <= 1,
     ];
 ];
 
-If[traceNodes == False && traceEdges == False && stepCount == 40,
-    stepCount = 16
-];
-
 Print[{outer, traceEdges, traceNodes, stepCount}];
 
 
-stepCountNoChange = 4;
+stepCountNoChange = stepCount / 5;
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
@@ -85,7 +81,7 @@ viewRotationAngle = 0.0;
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, nodeIndex, edgeIndex},
-    thickness = 0.035 * (1 + 0.0001 * serialNumber);
+    thickness = 0.035;
     range = If[outer, 2.5, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
     modifyingGraphElements = Length[rotatedVerticesTetra] > 0;
@@ -104,10 +100,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
         ];
     ];
 
-    angleChange = If[modifyingGraphElements,
-        2 * Pi/stepCount/(framesPerMove + 1),
-        Pi/stepCountNoChange/(framesPerMove + 1)
-        ];
+    angleChange = 2 * Pi/stepCount/(framesPerMove + 1);
     viewRotationAngle = viewRotationAngle + angleChange;
     rotationMatrix = RotationMatrix[viewRotationAngle, vertical];
 
@@ -119,23 +112,23 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
     (* nodes *)
     If[Length[cummulatedVerticesTetra[[1]]] > 0,
-        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[cummulatedVerticesTetra[[#]].rotationMatrix, 3 * thickness], thickness}&, Range[Length[cummulatedVerticesTetra]]]];
+        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[cummulatedVerticesTetra[[#]].rotationMatrix, 3 * thickness * (1 + 0.01 * #)], thickness}&, Range[Length[cummulatedVerticesTetra]]]];
     ];
 
     If[!traceNodes && modifyingGraphElements,
-        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[rotatedVerticesTetra[[#]].rotationMatrix, 3 * thickness], thickness}&, Range[Length[rotatedVerticesTetra]]]];
+        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[rotatedVerticesTetra[[#]].rotationMatrix, 3 * thickness * (1 + 0.01 * #)], thickness}&, Range[Length[rotatedVerticesTetra]]]];
     ];
 
     (* edges *)
     If[Length[cummulatedEdgesTetra[[1]]] > 0,
         graphElements = Join[graphElements,
-            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76]}&, Range[Length[edgeIndicesTetra]]]
+            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[edgeIndicesTetra]]]
         ];
     ];
 
     If[!traceEdges && modifyingGraphElements,
         graphElements = Join[graphElements,
-            Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]].rotationMatrix, thickness * 0.76]}&, Range[Length[edgeIndicesTetra]]]
+            Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[edgeIndicesTetra]]]
         ];
     ];
 
