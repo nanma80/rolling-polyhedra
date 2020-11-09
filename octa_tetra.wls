@@ -6,7 +6,7 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 stepCount = 16;
-framesPerMove = If[outer, 18, 9];
+framesPerMove = If[outer, 18, 8];
 
 outer = True;
 (* outer = False; *)
@@ -81,7 +81,7 @@ viewRotationAngle = - Pi / 2.;
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, nodeIndex, edgeIndex},
-    thickness = 0.035;
+    thickness = 0.035 * If[outer, 1, 0.5];
     range = If[outer, 1.5, 0.9];
     lighting = {{"Point", White, {10, -10, 10}}};
     modifyingGraphElements = Length[rotatedVerticesTetra] > 0;
@@ -122,7 +122,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
     (* edges *)
     If[Length[cummulatedEdgesTetra[[1]]] > 0,
         graphElements = Join[graphElements,
-            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[edgeIndicesTetra]]]
+            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[cummulatedEdgesTetra]]]
         ];
     ];
 

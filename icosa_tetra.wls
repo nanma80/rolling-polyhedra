@@ -122,7 +122,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
     (* edges *)
     If[Length[cummulatedEdgesTetra[[1]]] > 0,
         graphElements = Join[graphElements,
-            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[edgeIndicesTetra]]]
+            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[cummulatedEdgesTetra]]]
         ];
     ];
 
