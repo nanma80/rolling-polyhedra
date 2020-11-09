@@ -16,6 +16,10 @@ output/largefiles/**
 # temp ignore face_ while tuning
 output/**/face_polytope*
 
+# a file larger than 100MB
+output/icosa_tetra_outer_with_edges_with_nodes.gif
+
+
 data/test*.*
 # output/*.gif
 
