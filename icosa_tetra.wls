@@ -19,7 +19,7 @@ traceNodes = False;
 
 If[Length[$ScriptCommandLine] <= 1,
     Print["Pass config as command line parameters. For example:"];
-    Print["wolframscript.exe rotating_rolling.wls inner edges nodes"],
+    Print["wolframscript.exe icosa_tetra.wls inner edges nodes"],
     If[$ScriptCommandLine[[2]] == "outer" || $ScriptCommandLine[[2]] == "inner",
         outer = ($ScriptCommandLine[[2]] == "outer"),
         Print["First parameter must be either inner or outer"];
@@ -38,7 +38,7 @@ stepCountNoChange = stepCount / 5;
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
-outputFolder = FileNameJoin[{imageFolder, "rotating_rolling_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"]}];
+outputFolder = FileNameJoin[{imageFolder, "icosa_tetra_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"]}];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
 
 Needs["POVRayRender`"];
@@ -162,7 +162,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
 
 exportAnimation[] := Module[{},
-    gifFileName = "rotating_random_rolling_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"];
+    gifFileName = "icosa_tetra_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
     gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
