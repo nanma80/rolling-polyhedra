@@ -6,7 +6,7 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 stepCount = 40;
-framesPerMove = If[outer, 24, 12];
+framesPerMove = If[outer, 24, 18];
 
 outer = True;
 (* outer = False; *)
@@ -41,7 +41,7 @@ stepCountNoChange = stepCount / 5;
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
-outputFolder = FileNameJoin[{imageFolder, "icosa_tetra_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> "_" <> If[showFaces, "with_faces", ""] }];
+outputFolder = FileNameJoin[{imageFolder, "icosa_tetra_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> If[showFaces, "_with_faces", ""] }];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
 
 Needs["POVRayRender`"];
@@ -84,7 +84,7 @@ viewRotationAngle = 0.0;
 
 drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, nodeIndex, edgeIndex},
-    thickness = 0.035;
+    thickness = 0.035 * If[outer, 1, 2/3];
     range = If[outer, 2.5, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
     modifyingGraphElements = Length[rotatedVerticesTetra] > 0;
@@ -137,7 +137,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
     If[showFaces,
         graphElements = Join[graphElements,
-            Map[{Opacity[0.5], FaceForm[Green], Polygon[verticesIcosa[[faceIndicesIcosa[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesIcosa]]]
+            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Green], Polygon[verticesIcosa[[faceIndicesIcosa[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesIcosa]]]
         ];
 
         graphElements = Join[graphElements,
@@ -175,7 +175,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
 
 exportAnimation[] := Module[{},
-    gifFileName = "icosa_tetra_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> "_" <> If[showFaces, "with_faces", ""];
+    gifFileName = "icosa_tetra_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> If[showFaces, "_with_faces", ""];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
     gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
