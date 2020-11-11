@@ -17,6 +17,8 @@ traceEdges = False;
 (* traceNodes = True; *)
 traceNodes = False;
 
+showFaces = False;
+
 If[Length[$ScriptCommandLine] <= 1,
     Print["Pass config as command line parameters. For example:"];
     Print["wolframscript.exe icosa_tetra.wls inner edges nodes"],
@@ -28,17 +30,18 @@ If[Length[$ScriptCommandLine] <= 1,
         otherParams = Table[$ScriptCommandLine[[k]], {k, 3, Length[$ScriptCommandLine]}];
         traceEdges = ContainsAny[otherParams, {"edges", "edge"}];
         traceNodes = ContainsAny[otherParams, {"nodes", "node"}];
+        showFaces = ContainsAny[otherParams, {"faces", "face"}];
     ];
 ];
 
-Print[{outer, traceEdges, traceNodes, stepCount}];
+Print[{outer, traceEdges, traceNodes, showFaces, stepCount}];
 
 
 stepCountNoChange = stepCount / 5;
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
-outputFolder = FileNameJoin[{imageFolder, "icosa_tetra_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"]}];
+outputFolder = FileNameJoin[{imageFolder, "icosa_tetra_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> "_" <> If[showFaces, "with_faces", ""] }];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
 
 Needs["POVRayRender`"];
@@ -132,6 +135,16 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
         ];
     ];
 
+    If[showFaces,
+        graphElements = Join[graphElements,
+            Map[{Opacity[0.5], FaceForm[Green], Polygon[verticesIcosa[[faceIndicesIcosa[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesIcosa]]]
+        ];
+
+        graphElements = Join[graphElements,
+            Map[{FaceForm[Yellow], Polygon[rotatedVerticesTetra[[faceIndicesTetra[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesTetra]]]
+        ];
+    ];
+
     graph = Graphics3D[
         graphElements,
         ViewPoint -> viewPoint,
@@ -162,7 +175,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
 
 exportAnimation[] := Module[{},
-    gifFileName = "icosa_tetra_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"];
+    gifFileName = "icosa_tetra_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> "_" <> If[showFaces, "with_faces", ""];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
     gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
@@ -216,6 +229,7 @@ apex1 = face1Total * kFactor//FullSimplify;
 
 verticesTetra = Union[face1, {apex1}];
 edgeIndicesTetra = Union[Flatten[Map[Subsets[#, {2}]&, {{1, 2, 3, 4}}], 1]];
+faceIndicesTetra = Union[Flatten[Map[Subsets[#, {3}]&, {{1, 2, 3, 4}}], 1]];
 
 v1 = apex1 - edgeCenter;
 v2 = otherVertex - edgeCenter;
