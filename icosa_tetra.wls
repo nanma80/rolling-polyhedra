@@ -137,7 +137,7 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
     If[showFaces,
         graphElements = Join[graphElements,
-            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Green], Polygon[verticesIcosa[[faceIndicesIcosa[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesIcosa]]]
+            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Green], Polygon[verticesIcosa[[faceIndicesIcosa[[#]]]].rotationMatrix * If[outer, 0.9999, 1.0001]]}&, Range[Length[faceIndicesIcosa]]]
         ];
 
         graphElements = Join[graphElements,
