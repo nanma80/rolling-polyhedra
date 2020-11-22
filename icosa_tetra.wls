@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 
 imageFolder = "output";
-imageSize = 150 * {4, 3};
+imageSize = 240 * {4, 3};
 exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
