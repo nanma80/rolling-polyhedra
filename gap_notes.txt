@@ -1,5 +1,31 @@
 https://math.stackexchange.com/questions/1641110/proof-that-the-rubik-s-cube-group-is-2-generated/1641564
 
+#### great dodecahedron on dodecahedron. As same as rolling dodeca on dodeca??
+
+LoadPackage("grape");
+
+flipDodeca := (101, 102)(103, 106)(105, 112)(104, 108)(107, 110)(109, 111);
+rotateDodeca := (106, 105, 104, 103, 102)(108, 109, 110, 111, 112);
+
+flipGreatDodeca := (201, 202)(203, 206)(205, 212)(204, 208)(207, 210)(209, 211);
+rotateGreatDodeca := (206, 205, 204, 203, 202)(208, 209, 210, 211, 212);
+
+Size(Group(flipDodeca, rotateDodeca)); # 60
+Size(Group(flipGreatDodeca, rotateGreatDodeca)); # 60
+
+
+coreFlip := flipDodeca * flipGreatDodeca;
+setup := rotateDodeca * rotateGreatDodeca;
+generators := [coreFlip,
+        setup * coreFlip *Inverse(setup),
+        Inverse(setup) * coreFlip * setup];
+
+rollingGroup := Group(generators);
+IdGroup(rollingGroup); # [60, 5]
+StructureDescription(rollingGroup); # A5
+
+####
+
 LoadPackage("grape");
 
 flipIcosa := (19, 20)(18, 13)(11, 16)(9, 14)(10, 15)(2, 6)(8, 4)(1, 5)(17, 12)(7, 3);
