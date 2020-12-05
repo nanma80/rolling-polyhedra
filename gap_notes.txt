@@ -8,7 +8,8 @@ flipDodeca := (101, 102)(103, 106)(105, 112)(104, 108)(107, 110)(109, 111);
 rotateDodeca := (106, 105, 104, 103, 102)(108, 109, 110, 111, 112);
 
 flipGreatDodeca := (201, 202)(203, 206)(205, 212)(204, 208)(207, 210)(209, 211);
-rotateGreatDodeca := (206, 205, 204, 203, 202)(208, 209, 210, 211, 212);
+# rotateGreatDodeca := (201, 204, 211, 212, 202)(206, 205, 210, 207, 208);
+rotateGreatDodeca := (201, 202, 212, 211, 204)(206, 208, 207, 210, 205);
 
 Size(Group(flipDodeca, rotateDodeca)); # 60
 Size(Group(flipGreatDodeca, rotateGreatDodeca)); # 60
@@ -21,8 +22,9 @@ generators := [coreFlip,
         Inverse(setup) * coreFlip * setup];
 
 rollingGroup := Group(generators);
-IdGroup(rollingGroup); # [60, 5]
-StructureDescription(rollingGroup); # A5
+Size(rollingGroup); # 3600
+StructureDescription(rollingGroup); # A5 x A5
+setup in rollingGroup;
 
 ####
 
