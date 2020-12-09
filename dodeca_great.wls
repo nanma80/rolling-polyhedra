@@ -6,7 +6,7 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 stepCount = 40;
-framesPerMove = If[outer, 24, 18];
+framesPerMove = If[outer, 24, 18]/6;
 
 outer = True;
 (* outer = False; *)
@@ -50,7 +50,7 @@ ConfigurePOVRayRender["POVRayPath" -> "C:\\Program Files\\POV-Ray\\v3.7\\bin\\pv
 cubeVertices[dimension_] := 2 * Map[IntegerDigits[#, 2][[2;;dimension+1]]&, Table[k, {k, 2^dimension, 2 * 2^dimension - 1}]] - 1;
 allPlusMinus[v_] := Union[Map[(v #)&, cubeVertices[Length[v]]]];
 rotated[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].RotationMatrix[angle, axis]];
-
+getEdgesFromFace[face_] := Table[{face[[i+1]], face[[Mod[i+1, Length[face]] + 1]]}, {i, 0, Length[face] - 1}];
 
 getTriangularFaces[vertices_] := Module[
     {nvertices, edgeLength, i, j, k},
@@ -76,29 +76,31 @@ getTriangularFaces[vertices_] := Module[
     faces
 ];
 
+
+
 viewPoint = {3, -2.5, 2} * 10;
 vertical = {0, 1, phi};
-cummulatedVerticesTetra = {{}, {}, {}, {}};
-cummulatedEdgesTetra = {{}, {}, {}, {}, {}, {}};
+cummulatedVerticesGreatDodeca = Table[{}, {k, 12}];
+cummulatedEdgesTetra = Table[{}, {k, 30}];
 viewRotationAngle = 0.0;
 
-drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesTetra_, serialNumber_] := Module[
+drawImage[verticesDodeca_, edgeIndicesDodeca_, rotatedVerticesGreatDodeca_, edgeIndicesGreatDodeca_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, nodeIndex, edgeIndex},
     thickness = 0.035 * If[outer, 1, 2/3];
     range = If[outer, 2.5, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
-    modifyingGraphElements = Length[rotatedVerticesTetra] > 0;
+    modifyingGraphElements = Length[rotatedVerticesGreatDodeca] > 0;
 
     If[modifyingGraphElements,
         If[traceNodes,
-            For[nodeIndex = 1, nodeIndex <= Length[rotatedVerticesTetra], nodeIndex++,
-                AppendTo[cummulatedVerticesTetra[[nodeIndex]], rotatedVerticesTetra[[nodeIndex]]]
+            For[nodeIndex = 1, nodeIndex <= Length[rotatedVerticesGreatDodeca], nodeIndex++,
+                AppendTo[cummulatedVerticesGreatDodeca[[nodeIndex]], rotatedVerticesGreatDodeca[[nodeIndex]]]
             ]
         ];
 
         If[traceEdges,
-            For[edgeIndex = 1, edgeIndex <= Length[edgeIndicesTetra], edgeIndex++,
-                AppendTo[cummulatedEdgesTetra[[edgeIndex]], rotatedVerticesTetra[[edgeIndicesTetra[[edgeIndex]]]]]
+            For[edgeIndex = 1, edgeIndex <= Length[edgeIndicesGreatDodeca], edgeIndex++,
+                AppendTo[cummulatedEdgesTetra[[edgeIndex]], rotatedVerticesGreatDodeca[[edgeIndicesGreatDodeca[[edgeIndex]]]]]
             ]
         ];
     ];
@@ -109,39 +111,39 @@ drawImage[verticesIcosa_, edgeIndicesIcosa_, rotatedVerticesTetra_, edgeIndicesT
 
     graphElements = {};
 
-    (* icosahedron *)
-    graphElements = Join[graphElements, Map[{Sphere[#.rotationMatrix, 1.5 * thickness], thickness}&, verticesIcosa]];
-    graphElements = Join[graphElements, Map[{Cylinder[verticesIcosa[[#]].rotationMatrix, thickness * 0.75]}&, edgeIndicesIcosa]];
+    (* dodeca *)
+    graphElements = Join[graphElements, Map[{Sphere[#.rotationMatrix, 1.5 * thickness], thickness}&, verticesDodeca]];
+    graphElements = Join[graphElements, Map[{Cylinder[verticesDodeca[[#]].rotationMatrix, thickness * 0.75]}&, edgeIndicesDodeca]];
 
     (* nodes *)
-    If[Length[cummulatedVerticesTetra[[1]]] > 0,
-        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[cummulatedVerticesTetra[[#]].rotationMatrix, 3 * thickness * (1 + 0.01 * #)], thickness}&, Range[Length[cummulatedVerticesTetra]]]];
+    If[Length[cummulatedVerticesGreatDodeca[[1]]] > 0,
+        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[ Mod[#, Length[vertexColors]] + 1 ]]], Sphere[cummulatedVerticesGreatDodeca[[#]].rotationMatrix, 3 * thickness * (1 + 0.01 * #)], thickness}&, Range[Length[cummulatedVerticesGreatDodeca]]]];
     ];
 
     If[!traceNodes && modifyingGraphElements,
-        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[#]]], Sphere[rotatedVerticesTetra[[#]].rotationMatrix, 3 * thickness * (1 + 0.01 * #)], thickness}&, Range[Length[rotatedVerticesTetra]]]];
+        graphElements = Join[graphElements, Map[{FaceForm[vertexColors[[Mod[#, Length[vertexColors]] + 1 ]]], Sphere[rotatedVerticesGreatDodeca[[#]].rotationMatrix, 3 * thickness * (1 + 0.01 * #)], thickness}&, Range[Length[rotatedVerticesGreatDodeca]]]];
     ];
 
     (* edges *)
     If[Length[cummulatedEdgesTetra[[1]]] > 0,
         graphElements = Join[graphElements,
-            Map[{FaceForm[edgeColors[[#]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[cummulatedEdgesTetra]]]
+            Map[{FaceForm[edgeColors[[ Mod[#, Length[edgeColors]] + 1 ]]], Cylinder[cummulatedEdgesTetra[[#]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[cummulatedEdgesTetra]]]
         ];
     ];
 
     If[!traceEdges && modifyingGraphElements,
         graphElements = Join[graphElements,
-            Map[{FaceForm[edgeColors[[#]]], Cylinder[rotatedVerticesTetra[[edgeIndicesTetra[[#]]]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[edgeIndicesTetra]]]
+            Map[{FaceForm[edgeColors[[ Mod[#, Length[edgeColors]] + 1 ]]], Cylinder[rotatedVerticesGreatDodeca[[edgeIndicesGreatDodeca[[#]]]].rotationMatrix, thickness * 0.76 * (1 + 0.01 * #)]}&, Range[Length[edgeIndicesGreatDodeca]]]
         ];
     ];
 
     If[showFaces,
         graphElements = Join[graphElements,
-            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Green], Polygon[verticesIcosa[[faceIndicesIcosa[[#]]]].rotationMatrix * If[outer, 0.9999, 1.0001]]}&, Range[Length[faceIndicesIcosa]]]
+            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Green], Polygon[verticesDodeca[[faceIndicesDodeca[[#]]]].rotationMatrix * If[outer, 0.9999, 1.0001]]}&, Range[Length[faceIndicesDodeca]]]
         ];
 
         graphElements = Join[graphElements,
-            Map[{FaceForm[Yellow], Polygon[rotatedVerticesTetra[[faceIndicesTetra[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesTetra]]]
+            Map[{FaceForm[Yellow], Polygon[rotatedVerticesGreatDodeca[[faceIndicesGreatDodeca[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesGreatDodeca]]]
         ];
     ];
 
@@ -197,92 +199,108 @@ exportAnimation[] := Module[{},
 
 
 
+getPentagonFaces[vertices_] := Module[
+    {edgeLength, epsilon, i, j, k, l, m, phi},
+    phi = GoldenRatio;
+    faces = {};
+    edgeLength = 10^10;
+    epsilon = 0.0001;
+    For[i = 2, i <= Length[vertices], i++, 
+        If[ Norm[vertices[[i]] - vertices[[1]]] < edgeLength, edgeLength = Norm[vertices[[i]] - vertices[[1]]]];
+    ];
+    Print["Pentagonal face edge length:"];
+    Print[edgeLength];
+    For[i = 1, i <= Length[vertices]-1, i++, 
+        For[j = i + 1, j <= Length[vertices], j++, 
+            If[Abs[ Norm[vertices[[i]] - vertices[[j]]] - edgeLength] < epsilon,
+                For[k = i + 1, k <= Length[vertices], k++,
+                    If[ Abs[ Norm[vertices[[j]] - vertices[[k]]] - edgeLength] < epsilon &&
+                        Abs[ Norm[vertices[[i]] - vertices[[k]]] - phi * edgeLength] < epsilon,
+                        If[Det[{vertices[[i]] - vertices[[j]], vertices[[j]] - vertices[[k]], vertices[[i]] + vertices[[j]] + vertices[[k]]}] < 0, Continue[]];
+                        For[l = i + 1, l <= Length[vertices], l++,
+                            If[ Abs[ Norm[vertices[[k]] - vertices[[l]]] - edgeLength] < epsilon &&
+                                Abs[ Norm[vertices[[l]] - vertices[[j]]] - phi * edgeLength] < epsilon,
+                                For[m = i + 1, m <= Length[vertices], m++,
+                                    If[
+                                        Abs[ Norm[vertices[[l]] - vertices[[m]]] - edgeLength] < epsilon &&
+                                        Abs[ Norm[vertices[[i]] - vertices[[m]]] - edgeLength] < epsilon &&
+                                        Abs[ Norm[vertices[[j]] - vertices[[m]]] - phi * edgeLength] < epsilon &&
+                                        Abs[ Norm[vertices[[k]] - vertices[[m]]] - phi * edgeLength] < epsilon,
+
+                                        AppendTo[faces, {i, j, k, l, m}]
+
+                                    ];
+                                ];
+                            ];
+                        ];
+                    ];
+                ];   
+            ];
+        ];
+    ];
+    faces
+];
+
+
 (* initialization *)
 phi = (Sqrt[5] + 1) / 2;
-verticesSeedsIcosa = {
-  {0, 1, phi},
-  {1, phi, 0},
-  {phi, 0, 1}
+verticesSeedsDodeca = {
+    {1, 1, 1},
+    {0, phi, 1/phi},
+    {phi, 1/phi, 0},
+    {1/phi, 0, phi}
 };
 
-verticesIcosa = Union[Flatten[Map[allPlusMinus, verticesSeedsIcosa], 1]];
-faceIndicesIcosa = getTriangularFaces[verticesIcosa];
-edgeLength = Norm[verticesIcosa[[faceIndicesIcosa[[1]][[1]]]] - verticesIcosa[[faceIndicesIcosa[[1]][[2]]]]]//Simplify;
-edgeIndicesIcosa = Union[Flatten[Map[Subsets[#, {2}]&, faceIndicesIcosa], 1]];
+verticesDodeca = Union[Flatten[Map[allPlusMinus, verticesSeedsDodeca], 1]];
+faceIndicesDodeca = getPentagonFaces[verticesDodeca];
+
+edgeLength = Norm[verticesDodeca[[faceIndicesDodeca[[1]][[1]]]] - verticesDodeca[[faceIndicesDodeca[[1]][[2]]]]]//Simplify;
+edgeIndicesDodeca = Union[Map[Sort, Flatten[Map[getEdgesFromFace, faceIndicesDodeca], 1]]];
 
 faceIndex = 1;
-faceIndices1 = faceIndicesIcosa[[faceIndex]];
-edgeIndices1 = faceIndices1[[{2, 3}]];
-neighboringFaces = Select[faceIndicesIcosa, ContainsAll[#, edgeIndices1]&];
+faceIndices1 = faceIndicesDodeca[[faceIndex]];
+edgeIndices1 = faceIndices1[[{1, 2}]];
+neighboringFaces = Select[faceIndicesDodeca, ContainsAll[#, edgeIndices1]&];
+face1 = verticesDodeca[[neighboringFaces[[1]]]];
+face2 = verticesDodeca[[neighboringFaces[[2]]]];
 
-face1 = verticesIcosa[[neighboringFaces[[1]]]];
-otherVertexIndex = Complement[neighboringFaces[[2]], edgeIndices1][[1]];
-otherVertex = verticesIcosa[[otherVertexIndex]];
-edgeCenter = Mean[verticesIcosa[[edgeIndices1]]];
-edgeVector = verticesIcosa[[edgeIndices1]][[1]] - verticesIcosa[[edgeIndices1]][[2]];
+edgeCenter = Mean[verticesDodeca[[edgeIndices1]]];
+edgeVector = verticesDodeca[[edgeIndices1]][[1]] - verticesDodeca[[edgeIndices1]][[2]];
+icosaRatio = Norm[{0, 1, phi}]/2;
+
 
 face1Total = Total[face1];
-kSolutions = Solve[Norm[k * face1Total - verticesIcosa[[faceIndicesIcosa[[1]][[1]]]]] == edgeLength, {k}]//FullSimplify;
+kSolutions = Solve[Norm[k * face1Total - verticesDodeca[[faceIndicesDodeca[[1]][[1]]]]]/icosaRatio == edgeLength, {k}]//FullSimplify;
 ks = Sort[k/.kSolutions, #1<#2 &];
 kFactor = ks[[ If[outer, 2, 1] ]];
-apex1 = face1Total * kFactor//FullSimplify;
+icosaCenter1 = face1Total * kFactor//FullSimplify;
+icosaCenter2 = Total[face2] * kFactor//FullSimplify;
 
-verticesTetra = Union[face1, {apex1}];
-edgeIndicesTetra = Union[Flatten[Map[Subsets[#, {2}]&, {{1, 2, 3, 4}}], 1]];
-faceIndicesTetra = Union[Flatten[Map[Subsets[#, {3}]&, {{1, 2, 3, 4}}], 1]];
+radial = face1Total/Norm[face1Total]*Norm[icosaCenter1-face1[[1]]]//FullSimplify;
 
-v1 = apex1 - edgeCenter;
-v2 = otherVertex - edgeCenter;
+verticesGreatDodeca = Join[{icosaCenter1 - radial}, face1, Map[(2 * icosaCenter1 - #)&, face1], {icosaCenter1 + radial}]//FullSimplify;
+
+faceIndicesGreatDodeca = getPentagonFaces[verticesGreatDodeca];
+edgeIndicesGreatDodeca = Union[Map[Sort, Flatten[Map[getEdgesFromFace, faceIndicesGreatDodeca], 1]]];
+
+
+
+v1 = icosaCenter1 - edgeCenter;
+v2 = icosaCenter2 - edgeCenter;
 theta = ArcCos[(v1.v2)/Norm[v1]/Norm[v2]]//FullSimplify;
+(* outer: 180. inner: 116.56505 - 63.435=53.1301 *)
+
 
 sign = Sign[Det[{edgeVector, edgeCenter, face1Total}]] * If[outer, 1, -1];
-rotatedVerticesTetra = rotated[verticesTetra, edgeCenter, edgeVector, sign * theta/2];
+rotatedVerticesGreatDodeca = rotated[verticesGreatDodeca, edgeCenter, edgeVector, sign * theta/2];
 
 pathFaces = {
-    {1, 3, 7},
-    {1, 4, 7},
-    {4, 7, 12},
-    {4, 6, 12},
-    {6, 8, 12},
-    {2, 6, 8},
-    {2, 6, 10},
-    {2, 9, 10},
-    {1, 9, 10},
-    {1, 3, 9},
-    {3, 5, 9},
-    {3, 5, 11},
-    {5, 8, 11},
-    {8, 11, 12},
-    {7, 11, 12},
-    {3, 7, 11},
-    {1, 3, 7},
-    {1, 3, 9},
-    {3, 5, 9},
-    {2, 5, 9},
-    {2, 5, 8},
-    {2, 6, 8},
-    {2, 6, 10},
-    {4, 6, 10},
-    {1, 4, 10},
-    {1, 4, 7},
-    {4, 7, 12},
-    {7, 11, 12},
-    {8, 11, 12},
-    {6, 8, 12},
-    {4, 6, 12},
-    {4, 6, 10},
-    {1, 4, 10},
-    {1, 9, 10},
-    {2, 9, 10},
-    {2, 5, 9},
-    {2, 5, 8},
-    {5, 8, 11},
-    {3, 5, 11},
-    {3, 7, 11},
-    {1, 3, 7}
+    {1, 5, 6, 2, 13},
+    {1, 15, 17, 9, 5}
 };
 
-pathEdges = Table[Intersection[pathFaces[[i]], pathFaces[[i + 1]]], {i, 40}];
+
+pathEdges = Table[Intersection[pathFaces[[i]], pathFaces[[i + 1]]], {i, Length[pathFaces] - 1}];
 
 serialNumber = 1;
 
@@ -292,30 +310,31 @@ For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
 
     Print[{stepIndex, faceIndices1, edgeIndices1}];
 
-    edgeCenter = Mean[verticesIcosa[[edgeIndices1]]];
-    edgeVector = verticesIcosa[[edgeIndices1]][[1]] - verticesIcosa[[edgeIndices1]][[2]];
+    edgeCenter = Mean[verticesDodeca[[edgeIndices1]]];
+    edgeVector = verticesDodeca[[edgeIndices1]][[1]] - verticesDodeca[[edgeIndices1]][[2]];
 
-    face1 = verticesIcosa[[faceIndices1]];
+    face1 = verticesDodeca[[faceIndices1]];
     face1Total = Total[face1];
 
     sign = Sign[Det[{edgeVector, edgeCenter, face1Total}]] * If[outer, 1, -1];
 
     For[frameIndex = 0, frameIndex < framesPerMove, frameIndex++,
-        rotatedVerticesTetra = rotated[verticesTetra, edgeCenter, edgeVector, sign * theta / framesPerMove * frameIndex];
-        drawImage[verticesIcosa, edgeIndicesIcosa, rotatedVerticesTetra, edgeIndicesTetra, serialNumber];
+        rotatedVerticesGreatDodeca = rotated[verticesGreatDodeca, edgeCenter, edgeVector, sign * theta / framesPerMove * frameIndex];
+        drawImage[verticesDodeca, edgeIndicesDodeca, rotatedVerticesGreatDodeca, edgeIndicesGreatDodeca, serialNumber];
         serialNumber = serialNumber + 1;
     ];
 
-    verticesTetra = rotated[verticesTetra, edgeCenter, edgeVector, sign * theta]//FullSimplify;
+    verticesGreatDodeca = rotated[verticesGreatDodeca, edgeCenter, edgeVector, sign * theta]//FullSimplify;
 
-    drawImage[verticesIcosa, edgeIndicesIcosa, verticesTetra, edgeIndicesTetra, serialNumber];
+    drawImage[verticesDodeca, edgeIndicesDodeca, verticesGreatDodeca, edgeIndicesGreatDodeca, serialNumber];
     serialNumber = serialNumber + 1;
 ];
 
+Print["no change"];
 (* no change *)
 If[traceNodes || traceEdges,
     For[i = 1, i <= (framesPerMove + 1) * stepCountNoChange, i++,
-        drawImage[verticesIcosa, edgeIndicesIcosa, {}, {}, serialNumber];
+        drawImage[verticesDodeca, edgeIndicesDodeca, {}, {}, serialNumber];
         serialNumber = serialNumber + 1;
     ];
 ];
