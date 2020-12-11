@@ -5,8 +5,8 @@ imageSize = 240 * {4, 3};
 exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
-stepCount = 40;
-framesPerMove = If[outer, 24, 18]/6;
+stepCount = 36;
+framesPerMove = If[outer, 30, 18];
 
 outer = True;
 (* outer = False; *)
@@ -34,12 +34,15 @@ If[Length[$ScriptCommandLine] <= 1,
     ];
 ];
 
+Print["outer, traceEdges, traceNodes, showFaces, stepCount:"];
 Print[{outer, traceEdges, traceNodes, showFaces, stepCount}];
 
 
 stepCountNoChange = stepCount / 5;
-vertexColors = {Red, Yellow, Blue, Green};
-edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
+(* need 12 vertex colors and 30 edge colors *)
+basicColors = {Red, Yellow, Blue, Green, Cyan, Magenta};
+vertexColors = Union[basicColors, Map[Lighter[#]&, basicColors]];
+edgeColors = Union[basicColors, Map[Lighter[#, 0.3]&, basicColors], Map[Lighter[#, 0.7]&, basicColors], Map[Darker[#, 0.3]&, basicColors], Map[Darker[#, 0.7]&, basicColors]];
 
 outputFolder = FileNameJoin[{imageFolder, "dodeca_great_animation_frames_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"] <> If[showFaces, "_with_faces", ""] }];
 If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
@@ -86,8 +89,8 @@ viewRotationAngle = 0.0;
 
 drawImage[verticesDodeca_, edgeIndicesDodeca_, rotatedVerticesGreatDodeca_, edgeIndicesGreatDodeca_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, nodeIndex, edgeIndex},
-    thickness = 0.035 * If[outer, 1, 2/3];
-    range = If[outer, 2.5, 1.5];
+    thickness = 0.035 * If[outer, 1, 1/2];
+    range = If[outer, 2.7, 1.5];
     lighting = {{"Point", White, {10, -10, 10}}};
     modifyingGraphElements = Length[rotatedVerticesGreatDodeca] > 0;
 
@@ -106,6 +109,7 @@ drawImage[verticesDodeca_, edgeIndicesDodeca_, rotatedVerticesGreatDodeca_, edge
     ];
 
     angleChange = 2 * Pi/stepCount/(framesPerMove + 1);
+    If[angleChange > Pi/32, angleChange = Pi/32];
     viewRotationAngle = viewRotationAngle + angleChange;
     rotationMatrix = RotationMatrix[viewRotationAngle, vertical];
 
@@ -137,13 +141,16 @@ drawImage[verticesDodeca_, edgeIndicesDodeca_, rotatedVerticesGreatDodeca_, edge
         ];
     ];
 
+    (* show rotated great dodec regardless of setting *)
+    If[modifyingGraphElements,
+        graphElements = Join[graphElements,
+            Map[{Opacity[1], FaceForm[Lighter[Blue, 0.1]], Polygon[rotatedVerticesGreatDodeca[[faceIndicesGreatDodeca[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesGreatDodeca]]]
+        ];
+    ];
+
     If[showFaces,
         graphElements = Join[graphElements,
-            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Green], Polygon[verticesDodeca[[faceIndicesDodeca[[#]]]].rotationMatrix * If[outer, 0.9999, 1.0001]]}&, Range[Length[faceIndicesDodeca]]]
-        ];
-
-        graphElements = Join[graphElements,
-            Map[{FaceForm[Yellow], Polygon[rotatedVerticesGreatDodeca[[faceIndicesGreatDodeca[[#]]]].rotationMatrix]}&, Range[Length[faceIndicesGreatDodeca]]]
+            Map[{Opacity[If[outer, 0.5, 0.25]], FaceForm[Yellow], Polygon[verticesDodeca[[faceIndicesDodeca[[#]]]].rotationMatrix * If[outer, 0.9999, 1.0001]]}&, Range[Length[faceIndicesDodeca]]]
         ];
     ];
 
@@ -252,8 +259,14 @@ verticesSeedsDodeca = {
 };
 
 verticesDodeca = Union[Flatten[Map[allPlusMinus, verticesSeedsDodeca], 1]];
-faceIndicesDodeca = getPentagonFaces[verticesDodeca];
+faceIndicesDodeca = getPentagonFaces[verticesDodeca * 1.0];
 
+(* 
+{{1, 5, 6, 2, 13}, {1, 13, 14, 3, 15}, {1, 15, 17, 9, 5}, {2, 6, 10, 18, 16},
+{2, 16, 4, 14, 13}, {3, 7, 11, 17, 15}, {3, 14, 4, 8, 7}, {4, 16, 18, 12, 8},
+{5, 9, 19, 10, 6}, {7, 8, 12, 20, 11}, {9, 17, 11, 20, 19}, {10, 19, 20, 12, 18}}
+
+ *)
 edgeLength = Norm[verticesDodeca[[faceIndicesDodeca[[1]][[1]]]] - verticesDodeca[[faceIndicesDodeca[[1]][[2]]]]]//Simplify;
 edgeIndicesDodeca = Union[Map[Sort, Flatten[Map[getEdgesFromFace, faceIndicesDodeca], 1]]];
 
@@ -280,7 +293,7 @@ radial = face1Total/Norm[face1Total]*Norm[icosaCenter1-face1[[1]]]//FullSimplify
 
 verticesGreatDodeca = Join[{icosaCenter1 - radial}, face1, Map[(2 * icosaCenter1 - #)&, face1], {icosaCenter1 + radial}]//FullSimplify;
 
-faceIndicesGreatDodeca = getPentagonFaces[verticesGreatDodeca];
+faceIndicesGreatDodeca = getPentagonFaces[verticesGreatDodeca * 1.0];
 edgeIndicesGreatDodeca = Union[Map[Sort, Flatten[Map[getEdgesFromFace, faceIndicesGreatDodeca], 1]]];
 
 
@@ -296,7 +309,42 @@ rotatedVerticesGreatDodeca = rotated[verticesGreatDodeca, edgeCenter, edgeVector
 
 pathFaces = {
     {1, 5, 6, 2, 13},
-    {1, 15, 17, 9, 5}
+    {1, 15, 17, 9, 5},
+    {9, 17, 11, 20, 19},
+    {5, 9, 19, 10, 6},
+    {10, 19, 20, 12, 18},
+    {4, 16, 18, 12, 8},
+    {7, 8, 12, 20, 11},
+    {3, 14, 4, 8, 7},
+    {2, 16, 4, 14, 13},
+    {1, 13, 14, 3, 15},
+    {3, 14, 4, 8, 7},
+    {3, 7, 11, 17, 15},
+    {9, 17, 11, 20, 19},
+    {7, 8, 12, 20, 11},
+    {10, 19, 20, 12, 18},
+    {2, 6, 10, 18, 16},
+    {2, 16, 4, 14, 13},
+    {1, 5, 6, 2, 13},
+    {1, 13, 14, 3, 15},
+    {3, 7, 11, 17, 15},
+    {1, 15, 17, 9, 5},
+    {1, 5, 6, 2, 13},
+    {2, 6, 10, 18, 16},
+    {4, 16, 18, 12, 8},
+    {3, 14, 4, 8, 7},
+    {1, 13, 14, 3, 15},
+    {1, 15, 17, 9, 5},
+    {5, 9, 19, 10, 6},
+    {10, 19, 20, 12, 18},
+    {9, 17, 11, 20, 19},
+    {3, 7, 11, 17, 15},
+    {7, 8, 12, 20, 11},
+    {4, 16, 18, 12, 8},
+    {2, 16, 4, 14, 13},
+    {2, 6, 10, 18, 16},
+    {5, 9, 19, 10, 6},
+    {1, 5, 6, 2, 13}
 };
 
 
@@ -330,10 +378,10 @@ For[stepIndex = 1, stepIndex <= stepCount, stepIndex++,
     serialNumber = serialNumber + 1;
 ];
 
-Print["no change"];
 (* no change *)
 If[traceNodes || traceEdges,
     For[i = 1, i <= (framesPerMove + 1) * stepCountNoChange, i++,
+        Print[{"no change", i, (framesPerMove + 1) * stepCountNoChange}];
         drawImage[verticesDodeca, edgeIndicesDodeca, {}, {}, serialNumber];
         serialNumber = serialNumber + 1;
     ];

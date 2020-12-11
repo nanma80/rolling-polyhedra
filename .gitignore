@@ -24,7 +24,10 @@ output/icosa_tetra_inner_no_edges_with_nodes.gif
 output/icosa_tetra_inner_with_edges_with_nodes.gif
 output/icosa_tetra_outer_no_edges_with_nodes.gif
 output/icosa_tetra_outer_with_edges_with_nodes.gif
-
+output/dodeca_great_outer_no_edges_with_nodes.gif
+output/dodeca_great_outer_with_edges_with_nodes.gif
+output/dodeca_great_inner_no_edges_with_nodes.gif
+output/dodeca_great_inner_with_edges_with_nodes.gif
 
 data/test*.*
 # output/*.gif
