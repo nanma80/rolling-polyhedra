@@ -85,7 +85,7 @@ viewPoint = {3, -2.5, 2} * 10;
 vertical = {0, 1, phi};
 cummulatedVerticesGreatDodeca = Table[{}, {k, 12}];
 cummulatedEdgesTetra = Table[{}, {k, 30}];
-viewRotationAngle = 0.0;
+viewRotationAngle = -Pi/4.;
 
 drawImage[verticesDodeca_, edgeIndicesDodeca_, rotatedVerticesGreatDodeca_, edgeIndicesGreatDodeca_, serialNumber_] := Module[
     {thickness, range, lighting, graph, outputFileName, cropCommand, nodeIndex, edgeIndex},
