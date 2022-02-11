@@ -3,7 +3,7 @@
 exportToPov = True;
 highlightCenter = False;
 topView = False;
-stellateFaces = True;
+stellateFaces = False;
 
 imageSize = {4, 3} * 720 / 3;
 (* risingFrameCount = 7; *)
@@ -12,7 +12,7 @@ risingFrameCount = 75;
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
 	p = ToExpression[argv[[1]]]; q = ToExpression[argv[[2]]],
-	p = 3; q = 7; (* default *)
+	p = 3; q = 6; (* default *)
 ];
 
 maxStellationLevel = If[Length[argv] >= 3, ToExpression[argv[[3]]], 1];
@@ -45,7 +45,10 @@ Rotation[t_] :=
   {0, -Sin[t], Cos[t]}
 };
 epsilon = 0.00000001;
-HReflect[point_, mirror_, sig_] := point - 2 * HInner[point, mirror, sig]/HInner[mirror, mirror, sig]*mirror;
+HReflect[point_, mirror_, sig_] := If[sig!= 0, 
+	point - 2 * HInner[point, mirror, sig]/HInner[mirror, mirror, sig]*mirror,
+	point - 2 * (mirror[[2]]*point[[2]] + mirror[[3]]*point[[3]] + mirror[[1]])/(mirror[[2]]^2 + mirror[[3]]^2) * {0, mirror[[2]], mirror[[3]]}
+	];
 HDoubleReflect[point_, mirror1_, mirror2_, sig_] := HReflect[HReflect[point, mirror1, sig], mirror2, sig];
 (* ApproxSamePoint[point1_, point2_] := Norm[N[point1 - point2]] < 0.00001; *)
 ApproxSamePoint[point1_, point2_] := Round[point1, epsilon] == Round[point2, epsilon];
@@ -108,21 +111,23 @@ getGenerator[p_, q_] := Module[
 		Sqrt[signature*(ch2psi^2-1)] Cos[Pi/p], 
 		Sqrt[signature*(ch2psi^2-1)] Sin[Pi/p]};
 	
+
+	mirror1 = {0, 0, 1};
+	mirror2 = {0, -Sin[Pi/p], Cos[Pi/p]};
+	mirror3 = otherp2 - p2//Simplify;
 	If[signature == 0,
 		p0 = {1, 1, 0};
-		p1 = {1, Cos[Pi/p], Sin[Pi/p]};
+		p1 = {1, Cos[Pi/p], Sin[Pi/p]}*Cos[Pi/p];
 		p2 = {1, 0, 0};
 		otherp2 = 2 p1 - p2;
+		mirror3 = {-Cos[Pi/p], Cos[Pi/p], Sin[Pi/p]};
 	];
+
+	vertex1 = p0;
 
 	Print[p0//N];
 	Print[p1//N];
 	Print[otherp2//N];
-
-	vertex1 = p0;
-	mirror1 = {0, 0, 1};
-	mirror2 = {0, -Sin[Pi/p], Cos[Pi/p]};
-	mirror3 = otherp2 - p2//Simplify;
 
 	mirrors = {mirror1, mirror2, mirror3}//N;
 	Print["mirrors"];
@@ -151,6 +156,10 @@ generateFaces[p_, q_] := Module[
 
 	Print["Each face contains " <> IntegerString[Length[face1]] <> " vertices."];
 
+	nGenerations = 8;
+	If[signature > 0, nGenerations = 7];
+	If[signature < 0, nGenerations = 4];
+
 	faces = {face1};
 	countStart = -1;
 	For[i = 0, i <= nGenerations && countStart != Length[faces], i++,
@@ -176,13 +185,15 @@ generateFaces[p_, q_] := Module[
 			faces = Union[faces, newFaces, SameTest -> sameCenter];
 		];
 	];
-	faces
+
+	scaledFaces = Map[(# / vertex1[[2]] + {1- vertex1[[1]]/vertex1[[2]], 0, 0} )&, faces, {2}];
+	scaledFaces
 ]
 
-plotShape3D[faces_, stellationLevel_, spinAngle_] := Module[
+elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 	{allEdges, edges, allVertices, vertices, ratio, selectedFaces, displayFaces},
 
-	ratio = Tan[stellationLevel Pi/p]/Tan[Pi/p];
+	ratio = Tan[stellationLevel Pi/p]/Tan[Pi/p]//Simplify;
 	Print[{stellationLevel, ratio}];
 
 	rotation = RotationMatrix[spinAngle, {1, 0, 0}];
@@ -190,6 +201,7 @@ plotShape3D[faces_, stellationLevel_, spinAngle_] := Module[
 	selectedFaces = Map[(#.rotation) &, faces, {2}];
 	(* kleinFaces = Map[getKlein, faces, {2}]; *)
 	displayFaces = Map[getHyperboloid, selectedFaces, {2}];
+
 	If[stellateFaces, 
 		displayFaces = Map[scaleFace[#, ratio, Ceiling[stellationLevel]]&, displayFaces]
 	];
@@ -206,7 +218,6 @@ plotShape3D[faces_, stellationLevel_, spinAngle_] := Module[
 	(* Print["There are " <> IntegerString[Length[splitEdges]] <> " edges after split."]; *)
 	displayEdges = Map[getHyperboloid, edges, {2}];
 	displayEdges = Map[scale[#, ratio] &, displayEdges];
-	
 
 	allVertices = Round[Flatten[displayEdges, 1], epsilon];
 	vertices = Union[allVertices , SameTest -> ApproxSamePoint];
@@ -230,21 +241,25 @@ plotShape3D[faces_, stellationLevel_, spinAngle_] := Module[
 
 	(* centeredVertices = displayCenteredFaces[[1]]; *)
 
-	rangeZoom = Sqrt[maxRatio] * 1.2 * If[p < 6, 1, 0.5];
-	lighting = {{"Point", White, {10, -10, 10}}};
-	range = If[topView, 2, 3.5] * rangeZoom;
-	thickness = range / 80.0 / rangeZoom * If[p < 6, 1, 0.7];
-	viewCenter = {-5, 0, 0};
+	(* planar *)
+	color = Blue;
+	opacity = 0.5;
+
+	(* hyperbolic *)
+	If[sig > 0, color = Red; opacity = 1];
+
+	(* spherical *)
+	If[sig < 0, color = Green; opacity = 0.4];
 
 	elements = {
 			{
-				Opacity[1], FaceForm[color], Map[Polygon, displayFaces]
+				Opacity[opacity], FaceForm[color], Map[Polygon, displayFaces]
 			},
 			{
 				Opacity[1], FaceForm[White], Map[Cylinder[#, thickness]&, displayEdges]
 			},
 			{
-				Opacity[1], FaceForm[Cyan], Map[Sphere[#[[1]], thickness * rangeZoom]&, verticesTally]
+				Opacity[1], FaceForm[White], Map[Sphere[#[[1]], thickness * rangeZoom]&, verticesTally]
 			}
 	};
 
@@ -262,28 +277,36 @@ plotShape3D[faces_, stellationLevel_, spinAngle_] := Module[
 			}
 		];
 	];
-
-	graph = Graphics3D[
-		elements,
-		ViewPoint -> If[topView, {10, 0, 0}, {3, -3, 3}],
-		ViewVertical -> If[topView, {0, 1, 0}, {1, 0, 0}],
-		PlotRange -> {{viewCenter[[1]]-range, viewCenter[[1]]+range}, {viewCenter[[2]]-range, viewCenter[[2]]+range}, {viewCenter[[3]]-range, viewCenter[[3]]+range}},
-		Lighting -> lighting
-	];
-	graph
+	elements
 ];
 
 exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Module[
 	{},
 
-	graph = plotShape3D[faces, stellationLevel, spinAngle];
+	elements35 = elements3D[faces35, stellationLevel, spinAngle, -1];
+	elements36 = elements3D[faces36, stellationLevel, spinAngle, 0];
+	elements37 = elements3D[faces37, stellationLevel, spinAngle, 1];
+	elements = Union[elements35, elements36, elements37];
+
+	rangeZoom = Sqrt[maxRatio] * 1.2 * If[p < 6, 1, 0.5];
+	lighting = {{"Point", White, {10, -10, 10}}};
+	range = If[topView, 2, 3.5] * rangeZoom;
+	thickness = range / 80.0 / rangeZoom * If[p < 6, 1, 0.7];
+	viewCenter = {-3.5, 0, 0};
+
+	graph = Graphics3D[
+		elements,
+		ViewPoint -> If[topView, {10, 0, 0}, {3.5, -2.5, 3}],
+		ViewVertical -> If[topView, {0, 1, 0}, {1, 0, 0}],
+		PlotRange -> {{viewCenter[[1]]-range, viewCenter[[1]]+range}, {viewCenter[[2]]-range, viewCenter[[2]]+range}, {viewCenter[[3]]-range, viewCenter[[3]]+range}},
+		Lighting -> lighting
+	];
 
 	outputFolder = FileNameJoin[{imageFolder, outputFolderName}];
 	If[!DirectoryQ[outputFolder], CreateDirectory[outputFolder]];
 
 	outputFileName = "spinning_frame_" <> IntegerString[frameIndex, 10, 4] <> ".png";
 	outputFileName = FileNameJoin[{outputFolder, outputFileName}];
-
 
 	cropCommand = "mogrify -crop " <> IntegerString[imageSize[[2]]] <> "x" <> IntegerString[imageSize[[2]]] <> "+" <> IntegerString[(imageSize[[1]]-imageSize[[2]])/2] <> "+0 " <> outputFileName;
 
@@ -367,7 +390,11 @@ exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Mod
  *)
 
 Print[shape];
-faces = generateFaces[p, q];
+(* faces = generateFaces[p, q]; *)
+faces35 = generateFaces[p, q-1];
+faces36 = generateFaces[p, q];
+faces37 = generateFaces[p, q+1];
+
 (* exportAnimation[]; *)
 
 exportFrame[1.0, 0, 1, "test"];
