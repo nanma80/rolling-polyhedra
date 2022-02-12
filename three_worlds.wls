@@ -6,7 +6,7 @@ topView = False;
 stellateFaces = False;
 
 imageSize = {4, 3} * 720 / 3;
-stepsPerTurn = 10;
+stepsPerTurn = 35;
 
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
@@ -71,6 +71,16 @@ scale[edge_, ratio_] := Module[
 	center = Mean[edge];
 	Map[(# - center) * ratio + center&, edge]
 ];
+
+trimFaces[faces_] := Module[
+	{},
+	allEdges = Flatten[Map[getEdgesFromFace, faces], 1];
+	allEdgesTally = Tally[allEdges, ApproxSamePoint[Total[#1], Total[#2]]&];
+	commonEdges = Map[#[[1]]&, Select[allEdgesTally, #[[2]] > 1 &]];
+	trimmedFaces = Select[faces, Length[Intersection[getEdgesFromFace[#], commonEdges, SameTest -> sameCenter]] > 1 & ];
+	trimmedFaces
+];
+
 
 scaleFace[face_, ratio_, stellationLevel_] := Module[
 	{edges, edgeOrders},
@@ -318,7 +328,7 @@ exportFrame[faces35_, faces36_, faces37_, stellationLevel_, spinAngle_, frameInd
 
 	graph = Graphics3D[
 		elements,
-		ViewPoint -> If[topView, {10, 0, 0}, {3.5, -2.5, 2}],
+		ViewPoint -> If[topView, {10, 0, 0}, {2, -2.5, 3.5}],
 		ViewVertical -> If[topView, {0, 1, 0}, {1, 0, 0}],
 		PlotRange -> {{viewCenter[[1]]-range, viewCenter[[1]]+range}, {viewCenter[[2]]-range, viewCenter[[2]]+range}, {viewCenter[[3]]-range, viewCenter[[3]]+range}},
 		Lighting -> lighting
@@ -369,6 +379,10 @@ exportAnimation[] := Module[
 	faces36 = generateFaces[p, q];
 	faces37 = generateFaces[p, q+1];
 
+	Print[Map[Length, {faces35, faces36, faces37}]];
+	faces36 = trimFaces[faces36];
+	faces37 = trimFaces[faces37];
+	Print["after trimming"];
 	Print[Map[Length, {faces35, faces36, faces37}]];
 
 	int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
