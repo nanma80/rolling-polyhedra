@@ -230,7 +230,7 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 
 	rotation = RotationMatrix[spinAngle, {1, 0, 0}];
 	(* selectedFaces = Select[faces, (Total[#]/Length[#])[[1]] < 10 &]; *)
-	selectedFaces = Map[(#.rotation + {-sig * 0.001, 0, 0}) &, faces, {2}];
+	selectedFaces = Map[(#.rotation + {sig * 0.001, 0, 0}) &, faces, {2}];
 	(* kleinFaces = Map[getKlein, faces, {2}]; *)
 	displayFaces = Map[getHyperboloid, selectedFaces, {2}];
 
