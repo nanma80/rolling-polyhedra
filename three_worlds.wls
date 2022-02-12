@@ -128,6 +128,8 @@ getGenerator[p_, q_] := Module[
 	Print[p0//N];
 	Print[p1//N];
 	Print[otherp2//N];
+	Print["dihedral angle"];
+	Print[ArcCos[Dot[p2, otherp2]/Norm[p2]/Norm[otherp2]]/Pi * 180. ];
 
 	mirrors = {mirror1, mirror2, mirror3}//N;
 	Print["mirrors"];
@@ -156,8 +158,8 @@ generateFaces[p_, q_] := Module[
 
 	Print["Each face contains " <> IntegerString[Length[face1]] <> " vertices."];
 
-	nGenerations = 8;
-	If[signature > 0, nGenerations = 7];
+	nGenerations = 7;
+	If[signature > 0, nGenerations = 6];
 	If[signature < 0, nGenerations = 4];
 
 	faces = {face1};
@@ -248,8 +250,8 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 	(* hyperbolic *)
 	If[sig > 0, color = Red; opacity = 1];
 
-	(* spherical *)
-	If[sig < 0, color = Green; opacity = 0.4];
+	(* spherical, default to 0.4*)
+	If[sig < 0, color = Green; opacity = 0.0];
 
 	elements = {
 			{
@@ -395,9 +397,80 @@ faces35 = generateFaces[p, q-1];
 faces36 = generateFaces[p, q];
 faces37 = generateFaces[p, q+1];
 
+Print[Map[Length, {faces35, faces36, faces37}]];
+
+int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
+int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
+intAll = Intersection[int56, int67, SameTest -> sameCenter];
+Print[int56//Round[#, epsilon]&];
+Print[int67//Round[#, epsilon]&];
+Print[intAll//Round[#, epsilon]&];
+
+edges = getEdgesFromFace[intAll[[1]]];
+Print[edges//Round[#, epsilon]&];
+
+rotateEdge = edges[[1]];
+edgeCenter = Mean[rotateEdge];
+edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
+Print[edgeVector//N];
+
+rotated[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].RotationMatrix[angle, axis]];
+
+(* boost[t_] :=
+{
+  {Cosh[t], Sinh[t], 0},
+  {Sinh[t], Cosh[t], 0},
+  {0,       0,       1}
+};
+ *)
+
+boost[t_] :=
+{
+  {Cosh[t], 0, Sinh[t]},
+  {0, 1, 0},
+  {Sinh[t], 0, Cosh[t]}
+};
+
+(* only works if axis[[1]] == 0 *)
+boostMatrix[angle_, axis_] := RotationMatrix[Arg[axis[[2]] + I axis[[3]]], {1, 0, 0}].boost[angle].RotationMatrix[-Arg[axis[[2]] + I axis[[3]]], {1, 0, 0}];
+
+boosted[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].boostMatrix[angle, axis]];
+
+
+dihedral35 = (Pi-ArcCos[-Sqrt[5]/3]);
+Print["rotate"];
+
+exportFrame[1.0, 0, 10, "test"];
+
+faces37 = Map[boosted[#, edgeCenter, edgeVector, 0.1]&, faces37];
+exportFrame[1.0, 0, 11, "test"];
+
+
+(* faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35]&, faces35]; *)
+(* exportFrame[1.0, 0, 3, "test"]; *)
+
+(* int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
+int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
+intAll = Intersection[int56, int67, SameTest -> sameCenter];
+Print[int56//Round[#, epsilon]&];
+Print[int67//Round[#, epsilon]&];
+Print[intAll//Round[#, epsilon]&];
+ *)
+
 (* exportAnimation[]; *)
 
+(* exportFrame[1.0, 0, 0, "test"]; *)
+
+(* faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
 exportFrame[1.0, 0, 1, "test"];
+faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
+exportFrame[1.0, 0, 2, "test"];
+faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
+exportFrame[1.0, 0, 3, "test"];
+faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
+exportFrame[1.0, 0, 4, "test"];
+ *)
+
 (* exportFrame[1.0, 0, 2, "test"]; *)
 (* exportFrame[1.2, 0, 2, "test"]; *)
 (* exportFrame[1.4, 0, 3, "test"]; *)
