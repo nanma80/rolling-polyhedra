@@ -6,8 +6,7 @@ topView = False;
 stellateFaces = False;
 
 imageSize = {4, 3} * 720 / 3;
-(* risingFrameCount = 7; *)
-risingFrameCount = 75;
+stepsPerTurn = 4;
 
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
@@ -18,8 +17,10 @@ If[Length[argv] >= 2,
 maxStellationLevel = If[Length[argv] >= 3, ToExpression[argv[[3]]], 1];
 maxRatio = Tan[maxStellationLevel Pi/p]/Tan[Pi/p];
 nGenerations = If[Length[argv] >= 4, ToExpression[argv[[4]]], 4];
+dihedralSpherical = 0;
+dihedralHyperbolic = 0;
 
-shape = "hyper_" <> ToString[p, InputForm] <> "_" <> ToString[q, InputForm];
+shape = "three_worlds_" <> ToString[p, InputForm] <> "_" <> ToString[q, InputForm];
 colors = <|
 	3 -> Cyan,
 	5 -> Blue,
@@ -38,6 +39,7 @@ ConfigurePOVRayRender["POVRayPath" -> "C:\\Program Files\\POV-Ray\\v3.7\\bin\\pv
 HInner[v_, u_, sig_] := If[sig > 0, 2 * v[[1]] * u[[1]] - Dot[v, u], Dot[v, u]];
 HNormSquare[v_, sig_] := HInner[v, v, sig];
 HNorm[v_, sig_] := Sqrt[HNormSquare[v, sig]];
+rotated[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].RotationMatrix[angle, axis]];
 Rotation[t_] :=
 {
   {1,  0, 0},
@@ -79,7 +81,19 @@ scaleFace[face_, ratio_, stellationLevel_] := Module[
 	Flatten[edges[[edgeOrders]], 1]
 ];
 
-shapeWithParams = If[highlightCenter, "highlightCenter_", ""] <> If[topView, "topView_", ""] <> If[stellateFaces, "stellateFaces_", ""] <> shape <> "_" <> IntegerString[nGenerations];
+boost[t_] :=
+{
+  {Cosh[t], 0, Sinh[t]},
+  {0, 1, 0},
+  {Sinh[t], 0, Cosh[t]}
+};
+
+(* only works if axis[[1]] == 0 *)
+boostMatrix[angle_, axis_] := RotationMatrix[Arg[axis[[2]] + I axis[[3]]], {1, 0, 0}].boost[angle].RotationMatrix[-Arg[axis[[2]] + I axis[[3]]], {1, 0, 0}];
+
+boosted[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].boostMatrix[angle, axis]];
+
+shapeWithParams = shape;
 
 getGenerator[p_, q_] := Module[
 	{inner01, inner02, inner12, signature, p0, p1, p2, otherp2, ch2psi},
@@ -128,8 +142,14 @@ getGenerator[p_, q_] := Module[
 	Print[p0//N];
 	Print[p1//N];
 	Print[otherp2//N];
-	Print["dihedral angle"];
-	Print[ArcCos[Dot[p2, otherp2]/Norm[p2]/Norm[otherp2]]/Pi * 180. ];
+
+	If[signature < 0,
+		dihedralSpherical = ArcCos[Dot[p2, otherp2]/Norm[p2]/Norm[otherp2]]
+	];
+
+	If[signature > 0,
+		dihedralHyperbolic = ArcCosh[HInner[p2, otherp2, signature]/HNorm[p2, signature]/HNorm[otherp2, signature]]
+	];
 
 	mirrors = {mirror1, mirror2, mirror3}//N;
 	Print["mirrors"];
@@ -159,7 +179,7 @@ generateFaces[p_, q_] := Module[
 	Print["Each face contains " <> IntegerString[Length[face1]] <> " vertices."];
 
 	nGenerations = 7;
-	If[signature > 0, nGenerations = 6];
+	If[signature > 0, nGenerations = 7];
 	If[signature < 0, nGenerations = 4];
 
 	faces = {face1};
@@ -200,7 +220,7 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 
 	rotation = RotationMatrix[spinAngle, {1, 0, 0}];
 	(* selectedFaces = Select[faces, (Total[#]/Length[#])[[1]] < 10 &]; *)
-	selectedFaces = Map[(#.rotation) &, faces, {2}];
+	selectedFaces = Map[(#.rotation + {-sig * 0.001, 0, 0}) &, faces, {2}];
 	(* kleinFaces = Map[getKlein, faces, {2}]; *)
 	displayFaces = Map[getHyperboloid, selectedFaces, {2}];
 
@@ -282,7 +302,7 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 	elements
 ];
 
-exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Module[
+exportFrame[faces35_, faces36_, faces37_, stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Module[
 	{},
 
 	elements35 = elements3D[faces35, stellationLevel, spinAngle, -1];
@@ -298,7 +318,7 @@ exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Mod
 
 	graph = Graphics3D[
 		elements,
-		ViewPoint -> If[topView, {10, 0, 0}, {3.5, -2.5, 3}],
+		ViewPoint -> If[topView, {10, 0, 0}, {3.5, -2.5, 2}],
 		ViewVertical -> If[topView, {0, 1, 0}, {1, 0, 0}],
 		PlotRange -> {{viewCenter[[1]]-range, viewCenter[[1]]+range}, {viewCenter[[2]]-range, viewCenter[[2]]+range}, {viewCenter[[3]]-range, viewCenter[[3]]+range}},
 		Lighting -> lighting
@@ -323,7 +343,7 @@ exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Mod
 
 ];
 
-(* exportAnimation[] := Module[
+exportAnimation[] := Module[
 	{
 		outputFolder,
 		gifFileName,
@@ -333,9 +353,9 @@ exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Mod
 		explosionFactors,
 		frameIndex,
 		explosionFactor,
-		gifCommand
+		gifCommand,
+		edges
 	},
-
 
 	outputFolderName = shapeWithParams <> "_spinning_frames";
 	outputFolder = FileNameJoin[{imageFolder, outputFolderName}];
@@ -345,32 +365,64 @@ exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Mod
 	gifFolder = FileNameJoin[{imageFolder, shape}];
 	If[!DirectoryQ[gifFolder], CreateDirectory[gifFolder]];
 
-	stellationLevels = {};
-	stayingStellationLevels = Table[1, {frameIndex, 1, Ceiling[risingFrameCount/8], 1}];
-	stellationLevels = Join[stellationLevels, stayingStellationLevels];
+	faces35 = generateFaces[p, q-1];
+	faces36 = generateFaces[p, q];
+	faces37 = generateFaces[p, q+1];
 
-	For[level = 2, level <= maxStellationLevel, level ++,
-		stayingStellationLevels = Table[level-1, {frameIndex, 1, Ceiling[risingFrameCount/8], 1}];
-		stellationLevels = Join[stellationLevels, stayingStellationLevels];
-		increasingStellationLevels = Table[level - 1 + (1 - Cos[(frameIndex - 1)/(risingFrameCount - 1) * Pi 1.0])/2, {frameIndex, 1, risingFrameCount}];
-		stellationLevels = Join[stellationLevels, increasingStellationLevels];
-		stayingStellationLevels = Table[level, {frameIndex, 1, Ceiling[risingFrameCount/8], 1}];
-		stellationLevels = Join[stellationLevels, stayingStellationLevels];
+	Print[Map[Length, {faces35, faces36, faces37}]];
+
+	int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
+	int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
+	intAll = Intersection[int56, int67, SameTest -> sameCenter];
+	Print["before rotation"];
+	Print[Map[Length, {int56, int67, intAll}]];
+
+	edges = getEdgesFromFace[intAll[[1]]];
+	Print[edges//Round[#, epsilon]&];
+
+	rotatePivot = edges[[1]][[2]];
+	rotateEdges = {edges[[1]]};
+	For[rotateIndex = 1, rotateIndex < q, rotateIndex++,
+		newRotateEdge = rotated[rotateEdges[[-1]], rotatePivot, {1, 0, 0}, 2 Pi/q];
+		AppendTo[rotateEdges, newRotateEdge];
 	];
-	stayingStellationLevels = Table[maxStellationLevel, {frameIndex, 1, Ceiling[risingFrameCount/8], 1}];
-	stellationLevels = Join[stellationLevels, stayingStellationLevels];
-	stellationLevels = Join[stellationLevels, Reverse[stellationLevels]];
+	Print[rotateEdges//Round[#, epsilon]&];
 
-	frameCount = Length[stellationLevels];
+	frameIndex = 1;
+	For[rotateIndex = 1, rotateIndex <= q, rotateIndex++,
+		Print["rotateIndex: " <> IntegerString[rotateIndex] <> " initial image"];
+		exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
+		frameIndex++;
 
-	For[frameIndex = 1, frameIndex <= frameCount , frameIndex++,
-		stellationLevel = stellationLevels[[frameIndex]];
-		spinAngle = frameIndex/frameCount * 2.0 Pi / p;
-		Print["Frame #" <> IntegerString[frameIndex] <> "/" <> IntegerString[frameCount] <> " " <> ToString[stellationLevel] <> " " <> ToString[spinAngle] <> " " <> outputFolderName];
+		rotateEdge = rotateEdges[[rotateIndex]];
+		rotatePivot = rotateEdge[[1]];
+		edgeCenter = Mean[rotateEdge];
+		edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
 
-		exportFrame[stellationLevel, spinAngle, frameIndex, outputFolderName];
+		For[animationIndex = 1, animationIndex <= stepsPerTurn, animationIndex++,
+			turnedFaces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic/stepsPerTurn*animationIndex]&, faces37];
+			turnedFaces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical/stepsPerTurn*animationIndex]&, faces35];
+			Print["rotateIndex: " <> IntegerString[rotateIndex] <> " animationIndex: " <> IntegerString[animationIndex]];
+			exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
+			frameIndex++;
+		];
+
+		(* exportFrame[1.0, 0, rotateIndex * 100, "test"]; *)
+		(* exportFrame[1.0, 0, frameIndex, outputFolderName]; *)
+		(* frameIndex++; *)
+
+		faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic]&, faces37];
+		faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical]&, faces35];
+
+		int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
+		int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
+		intAll = Intersection[int56, int67, SameTest -> sameCenter];
+		
+		Print["After rotation " <> IntegerString[rotateIndex]];
+		Print[Map[Length, {int56, int67, intAll}]]
 	];
-	
+
+	frameCount = frameIndex - 1;
 	delay = If[frameCount >= 50, 3, Floor[500/frameCount]];
 
 	gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[delay] <> " -dispose 2 " <> outputFolder <> "\\spinning_frame*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
@@ -389,11 +441,9 @@ exportFrame[stellationLevel_, spinAngle_, frameIndex_, outputFolderName_] := Mod
   Run[mp4Command];
   Print["Saved the video to " <> gifFolder <> "\\" <> gifFileName <> ".mp4"];
 ];
- *)
 
-Print[shape];
-(* faces = generateFaces[p, q]; *)
-faces35 = generateFaces[p, q-1];
+
+(* faces35 = generateFaces[p, q-1];
 faces36 = generateFaces[p, q];
 faces37 = generateFaces[p, q+1];
 
@@ -402,54 +452,58 @@ Print[Map[Length, {faces35, faces36, faces37}]];
 int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
 int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
 intAll = Intersection[int56, int67, SameTest -> sameCenter];
-Print[int56//Round[#, epsilon]&];
-Print[int67//Round[#, epsilon]&];
-Print[intAll//Round[#, epsilon]&];
+Print["before rotation"];
+(* Print[int56//Round[#, epsilon]&]; *)
+(* Print[int67//Round[#, epsilon]&]; *)
+(* Print[intAll//Length]; *)
+Print[Map[Length, {int56, int67, intAll}]]
 
 edges = getEdgesFromFace[intAll[[1]]];
 Print[edges//Round[#, epsilon]&];
 
-rotateEdge = edges[[1]];
+rotateEdge = edges[[2]];
+rotatePivot = rotateEdge[[1]];
 edgeCenter = Mean[rotateEdge];
 edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
 Print[edgeVector//N];
 
-rotated[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].RotationMatrix[angle, axis]];
+rotateEdges = {edges[[1]]};
+For[rotateIndex = 1, rotateIndex < q, rotateIndex++,
+	newRotateEdge = rotated[rotateEdges[[-1]], rotatePivot, {1, 0, 0}, 2 Pi/q];
+	AppendTo[rotateEdges, newRotateEdge];
+];
+Print[rotateEdges//Round[#, epsilon]&];
 
-(* boost[t_] :=
-{
-  {Cosh[t], Sinh[t], 0},
-  {Sinh[t], Cosh[t], 0},
-  {0,       0,       1}
-};
+
+For[rotateIndex = 1, rotateIndex <= q, rotateIndex++,
+	rotateEdge = rotateEdges[[rotateIndex]];
+	rotatePivot = rotateEdge[[1]];
+	edgeCenter = Mean[rotateEdge];
+	edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
+
+	faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic]&, faces37];
+	(* exportFrame[1.0, 0, 11, "test"]; *)
+
+	faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical]&, faces35];
+	(* exportFrame[1.0, 0, 3, "test"]; *)
+	exportFrame[1.0, 0, rotateIndex * 100, "test"];
+
+	int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
+	int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
+	intAll = Intersection[int56, int67, SameTest -> sameCenter];
+	
+	Print["After rotation " <> IntegerString[rotateIndex]];
+	Print[Map[Length, {int56, int67, intAll}]]
+];
  *)
 
-boost[t_] :=
-{
-  {Cosh[t], 0, Sinh[t]},
-  {0, 1, 0},
-  {Sinh[t], 0, Cosh[t]}
-};
+(* faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic]&, faces37];
+(* exportFrame[1.0, 0, 11, "test"]; *)
 
-(* only works if axis[[1]] == 0 *)
-boostMatrix[angle_, axis_] := RotationMatrix[Arg[axis[[2]] + I axis[[3]]], {1, 0, 0}].boost[angle].RotationMatrix[-Arg[axis[[2]] + I axis[[3]]], {1, 0, 0}];
-
-boosted[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].boostMatrix[angle, axis]];
-
-
-dihedral35 = (Pi-ArcCos[-Sqrt[5]/3]);
-Print["rotate"];
-
-exportFrame[1.0, 0, 10, "test"];
-
-faces37 = Map[boosted[#, edgeCenter, edgeVector, 0.1]&, faces37];
-exportFrame[1.0, 0, 11, "test"];
-
-
-(* faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35]&, faces35]; *)
+faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical]&, faces35];
 (* exportFrame[1.0, 0, 3, "test"]; *)
 
-(* int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
+int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
 int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
 intAll = Intersection[int56, int67, SameTest -> sameCenter];
 Print[int56//Round[#, epsilon]&];
@@ -457,29 +511,15 @@ Print[int67//Round[#, epsilon]&];
 Print[intAll//Round[#, epsilon]&];
  *)
 
-(* exportAnimation[]; *)
+exportAnimation[];
 
 (* exportFrame[1.0, 0, 0, "test"]; *)
 
-(* faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
-exportFrame[1.0, 0, 1, "test"];
-faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
-exportFrame[1.0, 0, 2, "test"];
-faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
-exportFrame[1.0, 0, 3, "test"];
-faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedral35/4]&, faces35];
-exportFrame[1.0, 0, 4, "test"];
+(* exportFrame[1.0, 0, 0, "test"];
+frameCount = 4;
+For[frameIndex = 1, frameIndex <= frameCount, frameIndex++,
+	faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical/frameCount]&, faces35];
+	faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic/frameCount]&, faces37];	
+	exportFrame[1.0, 0, frameIndex+10, "test"];
+];
  *)
-
-(* exportFrame[1.0, 0, 2, "test"]; *)
-(* exportFrame[1.2, 0, 2, "test"]; *)
-(* exportFrame[1.4, 0, 3, "test"]; *)
-(* exportFrame[1.6, 0, 4, "test"]; *)
-(* exportFrame[1.8, 0, 5, "test"]; *)
-(* exportFrame[2.0, 0, 6, "test"]; *)
-(* exportFrame[2.2, 0, 7, "test"]; *)
-(* exportFrame[2.4, 0, 8, "test"]; *)
-(* exportFrame[2.6, 0, 9, "test"]; *)
-(* exportFrame[2.8, 0, 10, "test"]; *)
-(* exportFrame[3.0, 0, 11, "test"]; *)
-
