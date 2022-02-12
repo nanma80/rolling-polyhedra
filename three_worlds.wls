@@ -6,7 +6,7 @@ topView = False;
 stellateFaces = False;
 
 imageSize = {4, 3} * 720 / 3;
-stepsPerTurn = 4;
+stepsPerTurn = 10;
 
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
@@ -271,7 +271,7 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 	If[sig > 0, color = Red; opacity = 1];
 
 	(* spherical, default to 0.4*)
-	If[sig < 0, color = Green; opacity = 0.0];
+	If[sig < 0, color = Green; opacity = 0.3];
 
 	elements = {
 			{
