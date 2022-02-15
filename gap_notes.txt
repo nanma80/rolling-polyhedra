@@ -89,3 +89,4 @@ IdGroup(rollingGroup); # [ 96, 226 ]
 # 96 = 8 * 4 * 3. setup not in group
 StructureDescription(rollingGroup);
 # C2 x C2 x S4
+
