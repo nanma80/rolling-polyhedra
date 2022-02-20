@@ -6,7 +6,7 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 stepCount = 8;
-framesPerMove = If[outer, 30, 8];
+framesPerMove = If[outer, 50, 8];
 (* framesPerMove = If[outer, 3, 3]; *)
 
 outer = True;
@@ -166,7 +166,7 @@ exportAnimation[] := Module[{},
     gifFileName = "tetra_tetra_" <> If[outer, "outer", "inner"] <> "_" <> If[traceEdges, "with_edges", "no_edges"] <> "_" <> If[traceNodes, "with_nodes", "no_nodes"];
     frameCount = stepCount * (1 + framesPerMove);
     gifFolder = imageFolder;
-    gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[100/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
+    gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[Floor[200/framesPerMove]] <> " -dispose 2 " <> outputFolder <> "\\*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
 
     mp4Command = "ffmpeg -i " <> gifFolder <> "\\" <> gifFileName <> ".gif" 
         <> " -movflags faststart -pix_fmt yuv420p "
