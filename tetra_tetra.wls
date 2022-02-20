@@ -6,14 +6,14 @@ exportToPov = False;
 exportToPov = True;
 epsilon = 0.000000001;
 stepCount = 8;
-framesPerMove = If[outer, 42, 8];
+framesPerMove = If[outer, 30, 8];
 (* framesPerMove = If[outer, 3, 3]; *)
 
 outer = True;
 (* outer = False; *)
 
-traceEdges = True;
-(* traceEdges = False; *)
+(* traceEdges = True; *)
+traceEdges = False;
 
 traceNodes = True;
 (* traceNodes = False; *)
@@ -35,7 +35,7 @@ If[Length[$ScriptCommandLine] <= 1,
 Print[{outer, traceEdges, traceNodes, stepCount}];
 
 
-stepCountNoChange = stepCount / 5;
+stepCountNoChange = 3;
 vertexColors = {Red, Yellow, Blue, Green};
 edgeColors = {Cyan, Magenta, Orange, Lighter[Red], Lighter[Blue], Lighter[Green]};
 
@@ -74,8 +74,8 @@ getTriangularFaces[vertices_] := Module[
     faces
 ];
 
-viewPoint = {3, -0.5, 1} * 10;
-vertical = {0, 0, 1};
+viewPoint = {0.7, -0.5, 1} * 10;
+vertical = {1, -1, -1};
 cummulatedVerticesTetra = {{}, {}, {}, {}};
 cummulatedEdgesTetra = {{}, {}, {}, {}, {}, {}};
 viewRotationAngle = - Pi / 2.;
