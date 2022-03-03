@@ -6,7 +6,10 @@ topView = False;
 stellateFaces = False;
 
 imageSize = {4, 3} * 720 / 3;
-stepsPerTurn = 35;
+(* stepsPerTurn = 35; *)
+stepsPerTurn = 8;
+trackVertices = True;
+(* trackVertices = False; *)
 
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
@@ -103,7 +106,7 @@ boostMatrix[angle_, axis_] := RotationMatrix[Arg[axis[[2]] + I axis[[3]]], {1, 0
 
 boosted[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].boostMatrix[angle, axis]];
 
-shapeWithParams = shape;
+shapeWithParams = shape <> If[trackVertices, "_vert", ""];
 
 getGenerator[p_, q_] := Module[
 	{inner01, inner02, inner12, signature, p0, p1, p2, otherp2, ch2psi},
@@ -295,6 +298,21 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 			}
 	};
 
+	If[trackVertices,
+		If[sig != 0,
+			If[sig < 0,
+				AppendTo[elements, {
+					Opacity[1], FaceForm[color], 
+					Map[Sphere[#, thickness * rangeZoom * 1.5]&, Map[getHyperboloid, traceFaces35]]
+				}],
+				AppendTo[elements, {
+					Opacity[1], FaceForm[color], 
+					Map[Sphere[#, thickness * rangeZoom * 1.5]&, Map[getHyperboloid, traceFaces37]]
+				}]
+			]
+		]
+	];
+
 	If[highlightCenter,
 		highlightColor = White;
 		elements = Union[
@@ -406,6 +424,10 @@ exportAnimation[] := Module[
 	For[rotateIndex = 1, rotateIndex <= q, rotateIndex++,
 		Print["rotateIndex: " <> IntegerString[rotateIndex] <> " initial image"];
 		exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
+		If[trackVertices,
+			traceFaces35 = Union[traceFaces35, Flatten[faces35, 1], SameTest -> ApproxSamePoint];
+			traceFaces37 = Union[traceFaces37, Flatten[faces37, 1], SameTest -> ApproxSamePoint];
+		];
 		frameIndex++;
 
 		rotateEdge = rotateEdges[[rotateIndex]];
@@ -418,6 +440,11 @@ exportAnimation[] := Module[
 			turnedFaces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical/stepsPerTurn*animationIndex]&, faces35];
 			Print["rotateIndex: " <> IntegerString[rotateIndex] <> " animationIndex: " <> IntegerString[animationIndex]];
 			exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
+			If[trackVertices,
+				traceFaces35 = Union[traceFaces35, Flatten[turnedFaces35, 1], SameTest -> ApproxSamePoint];
+				traceFaces37 = Union[traceFaces37, Flatten[turnedFaces37, 1], SameTest -> ApproxSamePoint];
+			];
+
 			frameIndex++;
 		];
 
@@ -456,84 +483,7 @@ exportAnimation[] := Module[
   Print["Saved the video to " <> gifFolder <> "\\" <> gifFileName <> ".mp4"];
 ];
 
-
-(* faces35 = generateFaces[p, q-1];
-faces36 = generateFaces[p, q];
-faces37 = generateFaces[p, q+1];
-
-Print[Map[Length, {faces35, faces36, faces37}]];
-
-int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
-int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
-intAll = Intersection[int56, int67, SameTest -> sameCenter];
-Print["before rotation"];
-(* Print[int56//Round[#, epsilon]&]; *)
-(* Print[int67//Round[#, epsilon]&]; *)
-(* Print[intAll//Length]; *)
-Print[Map[Length, {int56, int67, intAll}]]
-
-edges = getEdgesFromFace[intAll[[1]]];
-Print[edges//Round[#, epsilon]&];
-
-rotateEdge = edges[[2]];
-rotatePivot = rotateEdge[[1]];
-edgeCenter = Mean[rotateEdge];
-edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
-Print[edgeVector//N];
-
-rotateEdges = {edges[[1]]};
-For[rotateIndex = 1, rotateIndex < q, rotateIndex++,
-	newRotateEdge = rotated[rotateEdges[[-1]], rotatePivot, {1, 0, 0}, 2 Pi/q];
-	AppendTo[rotateEdges, newRotateEdge];
-];
-Print[rotateEdges//Round[#, epsilon]&];
-
-
-For[rotateIndex = 1, rotateIndex <= q, rotateIndex++,
-	rotateEdge = rotateEdges[[rotateIndex]];
-	rotatePivot = rotateEdge[[1]];
-	edgeCenter = Mean[rotateEdge];
-	edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
-
-	faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic]&, faces37];
-	(* exportFrame[1.0, 0, 11, "test"]; *)
-
-	faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical]&, faces35];
-	(* exportFrame[1.0, 0, 3, "test"]; *)
-	exportFrame[1.0, 0, rotateIndex * 100, "test"];
-
-	int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
-	int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
-	intAll = Intersection[int56, int67, SameTest -> sameCenter];
-	
-	Print["After rotation " <> IntegerString[rotateIndex]];
-	Print[Map[Length, {int56, int67, intAll}]]
-];
- *)
-
-(* faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic]&, faces37];
-(* exportFrame[1.0, 0, 11, "test"]; *)
-
-faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical]&, faces35];
-(* exportFrame[1.0, 0, 3, "test"]; *)
-
-int56 = Intersection[faces35, faces36, SameTest -> sameCenter];
-int67 = Intersection[faces37, faces36, SameTest -> sameCenter];
-intAll = Intersection[int56, int67, SameTest -> sameCenter];
-Print[int56//Round[#, epsilon]&];
-Print[int67//Round[#, epsilon]&];
-Print[intAll//Round[#, epsilon]&];
- *)
+traceFaces35 = {};
+traceFaces37 = {};
 
 exportAnimation[];
-
-(* exportFrame[1.0, 0, 0, "test"]; *)
-
-(* exportFrame[1.0, 0, 0, "test"];
-frameCount = 4;
-For[frameIndex = 1, frameIndex <= frameCount, frameIndex++,
-	faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical/frameCount]&, faces35];
-	faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic/frameCount]&, faces37];	
-	exportFrame[1.0, 0, frameIndex+10, "test"];
-];
- *)
