@@ -12,7 +12,7 @@ trackVertices = True;
 imageSize = {4, 3} * 720 / 3;
 
 stepsPerTurn = If[trackVertices, 16, 35];
-stepsPerTurn = 5;
+(* stepsPerTurn = 3; *)
 
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
@@ -346,10 +346,11 @@ exportFrame[faces35_, faces36_, faces37_, stellationLevel_, spinAngle_, frameInd
 	range = 3.5 * rangeZoom;
 	thickness = range / 80.0 / rangeZoom * If[p < 6, 1, 0.7];
 	viewCenter = {-3.5, 0, 0};
+	If[trackVertices, viewCenter = viewCenter + rotatePivot];
 
 	graph = Graphics3D[
 		elements,
-		ViewPoint -> If[topView, {10, 0, 0}, {2, -2.5, 3.5}],
+		ViewPoint -> If[topView, {10, 0, 0} * 100, {2, -2.5, 3.5}],
 		ViewVertical -> If[topView, {0, 1, 0}, {1, 0, 0}],
 		PlotRange -> {{viewCenter[[1]]-range, viewCenter[[1]]+range}, {viewCenter[[2]]-range, viewCenter[[2]]+range}, {viewCenter[[3]]-range, viewCenter[[3]]+range}},
 		Lighting -> lighting
@@ -416,6 +417,8 @@ exportAnimation[] := Module[
 	Print[edges//Round[#, epsilon]&];
 
 	rotatePivot = edges[[1]][[2]];
+	Print["rotatePivot"];
+	Print[rotatePivot];
 	rotateEdges = {edges[[1]]};
 	For[rotateIndex = 1, rotateIndex < q, rotateIndex++,
 		newRotateEdge = rotated[rotateEdges[[-1]], rotatePivot, {1, 0, 0}, 2 Pi/q];
@@ -428,15 +431,14 @@ exportAnimation[] := Module[
 		Print["rotateIndex: " <> IntegerString[rotateIndex] <> " initial image"];
 		
 		If[trackVertices,
-			traceFaces35 = Union[traceFaces35, Flatten[faces35, 1], SameTest -> ApproxSamePoint];
-			traceFaces37 = Union[traceFaces37, Flatten[faces37, 1], SameTest -> ApproxSamePoint];
+			traceFaces35 = Join[traceFaces35, Flatten[faces35, 1]];
+			traceFaces37 = Join[traceFaces37, Flatten[faces37, 1]];
 			exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
 			exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
 		];
 		frameIndex++;
 
 		rotateEdge = rotateEdges[[rotateIndex]];
-		rotatePivot = rotateEdge[[1]];
 		edgeCenter = Mean[rotateEdge];
 		edgeVector = rotateEdge[[1]] - rotateEdge[[2]];
 
@@ -445,17 +447,13 @@ exportAnimation[] := Module[
 			turnedFaces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical/stepsPerTurn*animationIndex]&, faces35];
 			Print["rotateIndex: " <> IntegerString[rotateIndex] <> " animationIndex: " <> IntegerString[animationIndex]];
 			If[trackVertices,
-				traceFaces35 = Union[traceFaces35, Flatten[turnedFaces35, 1], SameTest -> ApproxSamePoint];
-				traceFaces37 = Union[traceFaces37, Flatten[turnedFaces37, 1], SameTest -> ApproxSamePoint];
+				traceFaces35 = Join[traceFaces35, Flatten[turnedFaces35, 1]];
+				traceFaces37 = Join[traceFaces37, Flatten[turnedFaces37, 1]];
 				exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
 				exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
 			];
 			frameIndex++;
 		];
-
-		(* exportFrame[1.0, 0, rotateIndex * 100, "test"]; *)
-		(* exportFrame[1.0, 0, frameIndex, outputFolderName]; *)
-		(* frameIndex++; *)
 
 		faces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic]&, faces37];
 		faces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical]&, faces35];
@@ -468,11 +466,13 @@ exportAnimation[] := Module[
 		Print[Map[Length, {int56, int67, intAll}]]
 	];
 
-	(* exportFrame[{}, faces36, {}, 1.0, 0, frameIndex, outputFolderName]; *)
-	(* frameIndex++; *)
-
-	(* exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName]; *)
-	(* frameIndex++; *)
+	If[trackVertices,
+		For[animationIndex = 1, animationIndex <= 2 * stepsPerTurn, animationIndex++,
+			Print["Final state animationIndex: " <> IntegerString[animationIndex]];
+			exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName];
+			frameIndex++;
+		];
+	];
 
 	frameCount = frameIndex - 1;
 	delay = If[frameCount >= 50, If[trackVertices, 5, 3], Floor[500/frameCount]];
