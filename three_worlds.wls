@@ -2,14 +2,17 @@
 
 exportToPov = True;
 highlightCenter = False;
-topView = False;
 stellateFaces = False;
+topView = True;
+(* topView = False; *)
 
-imageSize = {4, 3} * 720 / 3;
-(* stepsPerTurn = 35; *)
-stepsPerTurn = 8;
 trackVertices = True;
 (* trackVertices = False; *)
+
+imageSize = {4, 3} * 720 / 3;
+
+stepsPerTurn = If[trackVertices, 16, 35];
+stepsPerTurn = 5;
 
 argv = Rest @ $ScriptCommandLine;
 If[Length[argv] >= 2, 
@@ -106,7 +109,7 @@ boostMatrix[angle_, axis_] := RotationMatrix[Arg[axis[[2]] + I axis[[3]]], {1, 0
 
 boosted[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].boostMatrix[angle, axis]];
 
-shapeWithParams = shape <> If[trackVertices, "_vert", ""];
+shapeWithParams = shape <> If[topView, "_top", ""] <> If[trackVertices, "_vert", ""];
 
 getGenerator[p_, q_] := Module[
 	{inner01, inner02, inner12, signature, p0, p1, p2, otherp2, ch2psi},
@@ -303,7 +306,7 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 			If[sig < 0,
 				AppendTo[elements, {
 					Opacity[1], FaceForm[color], 
-					Map[Sphere[#, thickness * rangeZoom * 1.5]&, Map[getHyperboloid, traceFaces35]]
+					Map[Sphere[#, thickness * rangeZoom * 1.55]&, Map[getHyperboloid, traceFaces35]]
 				}],
 				AppendTo[elements, {
 					Opacity[1], FaceForm[color], 
@@ -340,7 +343,7 @@ exportFrame[faces35_, faces36_, faces37_, stellationLevel_, spinAngle_, frameInd
 
 	rangeZoom = Sqrt[maxRatio] * 1.2 * If[p < 6, 1, 0.5];
 	lighting = {{"Point", White, {10, -10, 10}}};
-	range = If[topView, 2, 3.5] * rangeZoom;
+	range = 3.5 * rangeZoom;
 	thickness = range / 80.0 / rangeZoom * If[p < 6, 1, 0.7];
 	viewCenter = {-3.5, 0, 0};
 
@@ -423,10 +426,12 @@ exportAnimation[] := Module[
 	frameIndex = 1;
 	For[rotateIndex = 1, rotateIndex <= q, rotateIndex++,
 		Print["rotateIndex: " <> IntegerString[rotateIndex] <> " initial image"];
-		exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
+		
 		If[trackVertices,
 			traceFaces35 = Union[traceFaces35, Flatten[faces35, 1], SameTest -> ApproxSamePoint];
 			traceFaces37 = Union[traceFaces37, Flatten[faces37, 1], SameTest -> ApproxSamePoint];
+			exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
+			exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
 		];
 		frameIndex++;
 
@@ -439,12 +444,12 @@ exportAnimation[] := Module[
 			turnedFaces37 = Map[boosted[#, edgeCenter, edgeVector, dihedralHyperbolic/stepsPerTurn*animationIndex]&, faces37];
 			turnedFaces35 = Map[rotated[#, edgeCenter, edgeVector, dihedralSpherical/stepsPerTurn*animationIndex]&, faces35];
 			Print["rotateIndex: " <> IntegerString[rotateIndex] <> " animationIndex: " <> IntegerString[animationIndex]];
-			exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
 			If[trackVertices,
 				traceFaces35 = Union[traceFaces35, Flatten[turnedFaces35, 1], SameTest -> ApproxSamePoint];
 				traceFaces37 = Union[traceFaces37, Flatten[turnedFaces37, 1], SameTest -> ApproxSamePoint];
+				exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
+				exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
 			];
-
 			frameIndex++;
 		];
 
@@ -463,8 +468,15 @@ exportAnimation[] := Module[
 		Print[Map[Length, {int56, int67, intAll}]]
 	];
 
+	(* exportFrame[{}, faces36, {}, 1.0, 0, frameIndex, outputFolderName]; *)
+	(* frameIndex++; *)
+
+	(* exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName]; *)
+	(* frameIndex++; *)
+
 	frameCount = frameIndex - 1;
-	delay = If[frameCount >= 50, 3, Floor[500/frameCount]];
+	delay = If[frameCount >= 50, If[trackVertices, 5, 3], Floor[500/frameCount]];
+	(* delay = 5; *)
 
 	gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[delay] <> " -dispose 2 " <> outputFolder <> "\\spinning_frame*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
 
@@ -487,3 +499,10 @@ traceFaces35 = {};
 traceFaces37 = {};
 
 exportAnimation[];
+
+
+(* 
+
+for ($num = 69 ; $num -le 99 ; $num++) { cp spinning_frame_0068.png "spinning_frame_00$num.png" }
+
+ *)
