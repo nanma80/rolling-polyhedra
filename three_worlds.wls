@@ -11,7 +11,7 @@ trackVertices = True;
 
 imageSize = {4, 3} * 720 / 3;
 
-stepsPerTurn = If[trackVertices, 16, 35];
+stepsPerTurn = If[trackVertices, 35, 35];
 (* stepsPerTurn = 3; *)
 
 argv = Rest @ $ScriptCommandLine;
@@ -281,10 +281,10 @@ elements3D[faces_, stellationLevel_, spinAngle_, sig_] := Module[
 
 	(* planar *)
 	color = Blue;
-	opacity = 0.5;
+	opacity = If[trackVertices, 0.3, 0.5];
 
 	(* hyperbolic *)
-	If[sig > 0, color = Red; opacity = 1];
+	If[sig > 0, color = Red; opacity = If[trackVertices, 0.3, 1]];
 
 	(* spherical, default to 0.4*)
 	If[sig < 0, color = Green; opacity = 0.3];
@@ -433,7 +433,7 @@ exportAnimation[] := Module[
 		If[trackVertices,
 			traceFaces35 = Join[traceFaces35, Flatten[faces35, 1]];
 			traceFaces37 = Join[traceFaces37, Flatten[faces37, 1]];
-			exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
+			exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName],
 			exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
 		];
 		frameIndex++;
@@ -449,7 +449,7 @@ exportAnimation[] := Module[
 			If[trackVertices,
 				traceFaces35 = Join[traceFaces35, Flatten[turnedFaces35, 1]];
 				traceFaces37 = Join[traceFaces37, Flatten[turnedFaces37, 1]];
-				exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
+				exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName],
 				exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
 			];
 			frameIndex++;
@@ -475,7 +475,7 @@ exportAnimation[] := Module[
 	];
 
 	frameCount = frameIndex - 1;
-	delay = If[frameCount >= 50, If[trackVertices, 5, 3], Floor[500/frameCount]];
+	delay = If[frameCount >= 50, If[trackVertices, 3, 3], Floor[500/frameCount]];
 	(* delay = 5; *)
 
 	gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[delay] <> " -dispose 2 " <> outputFolder <> "\\spinning_frame*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
