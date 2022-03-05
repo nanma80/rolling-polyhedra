@@ -9,6 +9,9 @@ topView = True;
 trackVertices = True;
 (* trackVertices = False; *)
 
+verticesOnly = True;
+(* verticesOnly = False; *)
+
 imageSize = {4, 3} * 720 / 3;
 
 stepsPerTurn = If[trackVertices, 35, 35];
@@ -109,7 +112,7 @@ boostMatrix[angle_, axis_] := RotationMatrix[Arg[axis[[2]] + I axis[[3]]], {1, 0
 
 boosted[vertices_, center_, axis_, angle_] := Map[# + center &, Map[# - center &, vertices].boostMatrix[angle, axis]];
 
-shapeWithParams = shape <> If[topView, "_top", ""] <> If[trackVertices, "_vert", ""];
+shapeWithParams = shape <> If[topView, "_top", ""] <> If[trackVertices, "_vert", ""] <> If[verticesOnly, "_only", ""];
 
 getGenerator[p_, q_] := Module[
 	{inner01, inner02, inner12, signature, p0, p1, p2, otherp2, ch2psi},
@@ -432,8 +435,11 @@ exportAnimation[] := Module[
 		
 		If[trackVertices,
 			traceFaces35 = Join[traceFaces35, Flatten[faces35, 1]];
-			traceFaces37 = Join[traceFaces37, Flatten[faces37, 1]];
-			exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName],
+			traceFaces37 = Join[traceFaces37, Flatten[faces37, 1]]
+		];
+
+		If[verticesOnly,
+			exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
 			exportFrame[faces35, faces36, faces37, 1.0, 0, frameIndex, outputFolderName];
 		];
 		frameIndex++;
@@ -448,8 +454,11 @@ exportAnimation[] := Module[
 			Print["rotateIndex: " <> IntegerString[rotateIndex] <> " animationIndex: " <> IntegerString[animationIndex]];
 			If[trackVertices,
 				traceFaces35 = Join[traceFaces35, Flatten[turnedFaces35, 1]];
-				traceFaces37 = Join[traceFaces37, Flatten[turnedFaces37, 1]];
-				exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName],
+				traceFaces37 = Join[traceFaces37, Flatten[turnedFaces37, 1]]
+			];
+
+			If[verticesOnly,
+				exportFrame[{}, {}, {}, 1.0, 0, frameIndex, outputFolderName],
 				exportFrame[turnedFaces35, faces36, turnedFaces37, 1.0, 0, frameIndex, outputFolderName];
 			];
 			frameIndex++;
@@ -476,7 +485,6 @@ exportAnimation[] := Module[
 
 	frameCount = frameIndex - 1;
 	delay = If[frameCount >= 50, If[trackVertices, 3, 3], Floor[500/frameCount]];
-	(* delay = 5; *)
 
 	gifCommand = "magick convert -quiet +repage -alpha remove -loop 0 -delay " <> IntegerString[delay] <> " -dispose 2 " <> outputFolder <> "\\spinning_frame*.png " <> gifFolder <> "\\" <> gifFileName <> ".gif";
 
